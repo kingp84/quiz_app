@@ -4,24 +4,34 @@
   <meta charset="UTF-8">
   <title>Forensics Quiz App</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; max-width: 800px; }
+    body { font-family: Arial, sans-serif; margin: 24px; max-width: 800px; background: #f4f4f9; }
     h1 { margin-bottom: 8px; }
-    #quiz { margin-top: 20px; }
-    #downloadBtn, #startBtn {
+    #intro, #quizPage, #resultsPage { display: none; }
+    #intro { display: block; }
+    .card { border: 2px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #fff; }
+    button {
       margin-top: 20px; padding: 10px 16px; background: #0078d7; color: white;
       border: none; border-radius: 6px; cursor: pointer;
     }
-    #downloadBtn:hover, #startBtn:hover { background: #005a9e; }
-    .note { color: #555; margin-top: 8px; }
+    button:hover { background: #005a9e; }
     ol { margin-left: 20px; }
+    .banner {
+      background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Fingerprint_picture.svg/512px-Fingerprint_picture.svg.png') no-repeat right center;
+      background-size: 80px;
+      padding: 12px;
+      border-bottom: 4px solid #000;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>Forensics Quiz App</h1>
-  <p>Welcome! This quiz will test your knowledge of forensic science concepts. Follow the prompts carefully.</p>
+  <div class="banner">
+    <h1>Forensics Quiz App 🕵️‍♂️</h1>
+  </div>
 
-  <!-- Visible instructions -->
-  <div id="instructions">
+  <!-- Intro Page -->
+  <div id="intro" class="card">
+    <p>Welcome! This quiz will test your knowledge of forensic science concepts. Follow the instructions carefully.</p>
     <h2>--- Test Instructions ---</h2>
     <ol>
       <li>Read each multiple-choice question carefully.</li>
@@ -30,19 +40,55 @@
       <li>The bonus questions can earn extra points but will not subtract points.</li>
       <li>Do your best and good luck!</li>
     </ol>
+
+    <!-- Collect student info -->
+    <form id="studentForm">
+      <label for="name">Name:</label><br>
+      <input type="text" id="name" required><br><br>
+      <label for="hour">Class Hour:</label><br>
+      <input type="text" id="hour" required><br><br>
+      <button type="submit">Start Test</button>
+    </form>
   </div>
 
-  <!-- Start button triggers quiz -->
-  <button id="startBtn" onclick="startQuiz()">Start Test</button>
-  <div class="note">Click “Start Test” to begin. If prompts don’t appear, allow pop‑ups in your browser.</div>
+  <!-- Quiz Page -->
+  <div id="quizPage" class="card">
+    <div id="quiz"></div>
+  </div>
 
-  <!-- Quiz container -->
-  <div id="quiz"></div>
+  <!-- Results Page -->
+  <div id="resultsPage" class="card">
+    <h2>Quiz Complete!</h2>
+    <div id="results"></div>
+    <button onclick="downloadCSV()">Download My Responses (CSV)</button>
+  </div>
 
-  <!-- Download button for CSV -->
-  <button id="downloadBtn" onclick="downloadCSV()">Download My Responses (CSV)</button>
-
-  <!-- Load quiz logic -->
   <script src="quiz.js"></script>
+  <script>
+    // Handle student info form
+    document.getElementById('studentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const hour = document.getElementById('hour').value;
+      student_responses.student_info = { name, hour };
+
+      // Hide intro, show quiz
+      document.getElementById('intro').style.display = 'none';
+      document.getElementById('quizPage').style.display = 'block';
+
+      // Start quiz
+      startQuiz();
+    });
+
+    // Show results at the end
+    function showFinalResults(score) {
+      document.getElementById('quizPage').style.display = 'none';
+      document.getElementById('resultsPage').style.display = 'block';
+      document.getElementById('results').innerHTML =
+        `<p><strong>Name:</strong> ${student_responses.student_info.name}</p>
+         <p><strong>Hour:</strong> ${student_responses.student_info.hour}</p>
+         <p><strong>Final Score:</strong> ${score} points</p>`;
+    }
+  </script>
 </body>
 </html>

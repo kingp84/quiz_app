@@ -372,14 +372,44 @@ function askBonus(bonus_questions) {
   });
 }
 
+// -----------------------------
+// Show correct answers
+// -----------------------------
 function showAnswers(mc_questions, short_questions, bonus_questions) {
   let output = "--- Correct Answers ---\n";
-  mc_questions.forEach((q, idx) => { output += `MC Q${idx+1}: ${q.question}\nCorrect Answer: ${q.answer}\n\n`; });
-  short_questions.forEach((q, idx) => { output += `Short Q${idx+1}: ${q.question}\nCorrect Answer: ${q.answer}\n\n`; });
-  bonus_questions.forEach((q, idx) => { output += `Bonus Q${idx+1}: ${q.question}\nSuggested Answer: ${q.answer}\n\n`; });
-  alert(output);
+  mc_questions.forEach((q, idx) => {
+    output += `MC Q${idx+1}: ${q.question}\nCorrect Answer: ${q.answer}\n\n`;
+  });
+  short_questions.forEach((q, idx) => {
+    output += `Short Q${idx+1}: ${q.question}\nCorrect Answer: ${q.answer}\n\n`;
+  });
+  bonus_questions.forEach((q, idx) => {
+    output += `Bonus Q${idx+1}: ${q.question}\nSuggested Answer: ${q.answer}\n\n`;
+  });
+  console.log(output); // ✅ logs answers for teacher review
 }
 
+// -----------------------------
+// Show final results on results page
+// -----------------------------
+function showFinalResults(score) {
+  // Store score for CSV export
+  student_responses.score = score;
+
+  // Hide quiz page, show results page
+  document.getElementById('quizPage').style.display = 'none';
+  document.getElementById('resultsPage').style.display = 'block';
+
+  // Display results
+  document.getElementById('results').innerHTML =
+    `<p><strong>Name:</strong> ${student_responses.student_info.name}</p>
+     <p><strong>Hour:</strong> ${student_responses.student_info.hour}</p>
+     <p><strong>Final Score:</strong> ${score} points</p>`;
+}
+
+// -----------------------------
+// Download responses as CSV
+// -----------------------------
 function downloadCSV() {
   const info = student_responses.student_info || {};
   const rows = [
@@ -409,25 +439,31 @@ function downloadCSV() {
   a.click();
 }
 
+// -----------------------------
+// Run the quiz
+// -----------------------------
 function runQuiz(mc_questions, short_questions, bonus_questions) {
-  welcomeScreen();
-  alert("Press OK to begin the test...");
-
   let score = 0;
+
+  // Shuffle MC questions
   const shuffled_mc = [...mc_questions].sort(() => Math.random() - 0.5);
   shuffled_mc.forEach(q => { score += askMC(q); });
 
+  // Short-answer section
   askShort(short_questions);
+
+  // Bonus section
   askBonus(bonus_questions);
 
-  student_responses.score = score; // ✅ store score for CSV
+  // Show results page instead of alerts
+  showFinalResults(score);
 
-  alert(`Final Score: ${score} points\nStudent Info: ${JSON.stringify(student_responses.student_info)}`);
+  // Log correct answers for teacher review
   showAnswers(mc_questions, short_questions, bonus_questions);
 }
 
 // -----------------------------
-// Start Quiz
+// Entry point (called from index.html)
 // -----------------------------
 function startQuiz() {
   runQuiz(mc_questions, short_questions, bonus_questions);
