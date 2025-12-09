@@ -27,6 +27,8 @@ cd forensics-quiz-app
 ### Run the Quiz
 python quiz.py
 
+https://kingp84.github.io/quiz_app/
+
 📚 Usage
 • 	The quiz questions are stored in  inside .
 • 	You can extend or modify the question set easily.
