@@ -380,6 +380,35 @@ function showAnswers(mc_questions, short_questions, bonus_questions) {
   alert(output);
 }
 
+function downloadCSV() {
+  const info = student_responses.student_info || {};
+  const rows = [
+    ["Name","Hour","Score","MC Responses","Short Responses","Bonus Responses"],
+    [
+      info.name || "",
+      info.hour || "",
+      student_responses.score || 0,
+      student_responses.mc.map(mc =>
+        `${mc.question} -> ${mc.response} (Start: ${mc.start_time}, End: ${mc.end_time})`
+      ).join("; "),
+      student_responses.short.map(sa =>
+        `${sa.question} -> ${sa.response} (Start: ${sa.start_time}, End: ${sa.end_time})`
+      ).join("; "),
+      student_responses.bonus.map(b =>
+        `${b.question} -> ${b.response} (Start: ${b.start_time}, End: ${b.end_time})`
+      ).join("; ")
+    ]
+  ];
+
+  const csvContent = rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "responses.csv";
+  a.click();
+}
+
 function runQuiz(mc_questions, short_questions, bonus_questions) {
   welcomeScreen();
   alert("Press OK to begin the test...");
@@ -390,6 +419,8 @@ function runQuiz(mc_questions, short_questions, bonus_questions) {
 
   askShort(short_questions);
   askBonus(bonus_questions);
+
+  student_responses.score = score; // ✅ store score for CSV
 
   alert(`Final Score: ${score} points\nStudent Info: ${JSON.stringify(student_responses.student_info)}`);
   showAnswers(mc_questions, short_questions, bonus_questions);
