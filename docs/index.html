@@ -3,30 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <title>Forensics Quiz App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; max-width: 800px; background: #f4f4f9; }
-    h1 { margin-bottom: 8px; }
+    :root {
+      --primary: #0b5cab;
+      --primary-dark: #08427a;
+      --card-bg: #ffffff;
+      --page-bg: #f4f6f9;
+      --text: #222;
+      --muted: #555;
+      --accent: #111;
+    }
+    body {
+      font-family: Segoe UI, Arial, sans-serif;
+      margin: 24px;
+      max-width: 880px;
+      color: var(--text);
+      background: var(--page-bg);
+    }
+    .banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(90deg, #111 0%, #222 50%, #333 100%);
+      color: #fff;
+      padding: 16px 20px;
+      border-radius: 10px;
+      border: 3px solid #000;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .banner h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: 0.5px;
+    }
+    .banner .mark {
+      width: 90px; height: 90px;
+      background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Fingerprint_picture.svg/512px-Fingerprint_picture.svg.png') no-repeat center center;
+      background-size: contain;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+    }
+    .tape {
+      position: absolute;
+      bottom: -10px;
+      left: 10px;
+      transform: rotate(-3deg);
+      background: repeating-linear-gradient(
+        45deg,
+        #f9d71c 0 14px,
+        #111 14px 28px
+      );
+      color: #111;
+      font-weight: 700;
+      border: 2px solid #111;
+      border-radius: 6px;
+      padding: 6px 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+    }
+    .card {
+      background: var(--card-bg);
+      border: 2px solid #222;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+    h2 { margin: 8px 0 12px; font-size: 1.3rem; }
+    p { margin: 0 0 10px; }
+    ol { margin: 8px 0 0 22px; }
+    label { font-weight: 600; }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      margin-top: 6px;
+      font-size: 1rem;
+    }
+    button {
+      margin-top: 14px;
+      padding: 10px 16px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: var(--primary-dark); }
+    .muted { color: var(--muted); font-size: 0.95rem; }
     #intro, #quizPage, #resultsPage { display: none; }
     #intro { display: block; }
-    .card { border: 2px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #fff; }
-    button {
-      margin-top: 20px; padding: 10px 16px; background: #0078d7; color: white;
-      border: none; border-radius: 6px; cursor: pointer;
-    }
-    button:hover { background: #005a9e; }
-    ol { margin-left: 20px; }
-    .banner {
-      background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Fingerprint_picture.svg/512px-Fingerprint_picture.svg.png') no-repeat right center;
-      background-size: 80px;
-      padding: 12px;
-      border-bottom: 4px solid #000;
-      margin-bottom: 20px;
-    }
+    .result-row { margin: 6px 0; }
+    .result-row strong { display: inline-block; width: 140px; }
   </style>
 </head>
 <body>
   <div class="banner">
     <h1>Forensics Quiz App 🕵️‍♂️</h1>
+    <div class="mark" aria-hidden="true"></div>
+    <div class="tape">CRIME SCENE — DO NOT CROSS</div>
   </div>
 
   <!-- Intro Page -->
@@ -37,57 +114,116 @@
       <li>Read each multiple-choice question carefully.</li>
       <li>Select the best answer from the options provided.</li>
       <li>Answer short-answer questions in complete sentences.</li>
-      <li>The bonus questions can earn extra points but will not subtract points.</li>
+      <li>Bonus questions can earn extra points but never subtract points.</li>
       <li>Do your best and good luck!</li>
     </ol>
 
     <!-- Collect student info -->
-    <form id="studentForm">
-      <label for="name">Name:</label><br>
-      <input type="text" id="name" required><br><br>
-      <label for="hour">Class Hour:</label><br>
-      <input type="text" id="hour" required><br><br>
+    <form id="studentForm" autocomplete="on">
+      <div style="margin-top:12px;">
+        <label for="name">Name</label>
+        <input type="text" id="name" placeholder="First Last" required>
+      </div>
+      <div style="margin-top:12px;">
+        <label for="hour">Class hour</label>
+        <input type="text" id="hour" placeholder="e.g., 1st hour" required>
+      </div>
       <button type="submit">Start Test</button>
+      <div class="muted" style="margin-top:8px;">Your name and hour are stored with your responses for teacher review.</div>
     </form>
   </div>
 
   <!-- Quiz Page -->
   <div id="quizPage" class="card">
+    <h2>Quiz in progress</h2>
     <div id="quiz"></div>
+    <div id="progress" class="muted" style="margin-top:10px;"></div>
   </div>
 
   <!-- Results Page -->
   <div id="resultsPage" class="card">
-    <h2>Quiz Complete!</h2>
+    <h2>Quiz complete</h2>
     <div id="results"></div>
-    <button onclick="downloadCSV()">Download My Responses (CSV)</button>
+    <button id="downloadBtn" onclick="downloadCSV()">Download my responses (CSV)</button>
+    <div class="muted" style="margin-top:8px;">Tip: Save your CSV and send it to your teacher if requested.</div>
   </div>
 
+  <!-- Load quiz logic -->
   <script src="quiz.js"></script>
+
+  <!-- Page wiring and results rendering -->
   <script>
-    // Handle student info form
-    document.getElementById('studentForm').addEventListener('submit', function(e) {
+    // Guard: ensure global storage exists
+    window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
+
+    // Handle student info submission
+    const studentForm = document.getElementById('studentForm');
+    studentForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      const name = document.getElementById('name').value;
-      const hour = document.getElementById('hour').value;
+      const name = document.getElementById('name').value.trim();
+      const hour = document.getElementById('hour').value.trim();
+      if (!name || !hour) return;
+
       student_responses.student_info = { name, hour };
 
-      // Hide intro, show quiz
+      // Switch to quiz page
       document.getElementById('intro').style.display = 'none';
       document.getElementById('quizPage').style.display = 'block';
 
-      // Start quiz
-      startQuiz();
+      // Start quiz (must be defined in quiz.js)
+      if (typeof startQuiz === 'function') {
+        startQuiz();
+      } else {
+        document.getElementById('quiz').innerHTML = "<p class='muted'>Quiz script not loaded. Ensure quiz.js defines startQuiz().</p>";
+      }
     });
 
-    // Show results at the end
+    // Called by quiz.js at the end with the final numeric score
     function showFinalResults(score) {
+      // Store score for CSV
+      student_responses.score = score;
+
+      // Switch pages
       document.getElementById('quizPage').style.display = 'none';
       document.getElementById('resultsPage').style.display = 'block';
+
+      // Render summary
+      const info = student_responses.student_info || {};
       document.getElementById('results').innerHTML =
-        `<p><strong>Name:</strong> ${student_responses.student_info.name}</p>
-         <p><strong>Hour:</strong> ${student_responses.student_info.hour}</p>
-         <p><strong>Final Score:</strong> ${score} points</p>`;
+        `<div class="result-row"><strong>Name:</strong> ${info.name || ''}</div>
+         <div class="result-row"><strong>Hour:</strong> ${info.hour || ''}</div>
+         <div class="result-row"><strong>Final score:</strong> ${score} points</div>`;
+    }
+
+    // CSV download (includes timestamps if your quiz.js records them)
+    function downloadCSV() {
+      const info = student_responses.student_info || {};
+      const rows = [
+        ["Name","Hour","Score","MC Responses","Short Responses","Bonus Responses"],
+        [
+          info.name || "",
+          info.hour || "",
+          student_responses.score || 0,
+          (student_responses.mc || []).map(mc =>
+            `${mc.question} -> ${mc.response} (Start: ${mc.start_time || ''}, End: ${mc.end_time || ''})`
+          ).join("; "),
+          (student_responses.short || []).map(sa =>
+            `${sa.question} -> ${sa.response} (Start: ${sa.start_time || ''}, End: ${sa.end_time || ''})`
+          ).join("; "),
+          (student_responses.bonus || []).map(b =>
+            `${b.question} -> ${b.response} (Start: ${b.start_time || ''}, End: ${b.end_time || ''})`
+          ).join("; ")
+        ]
+      ];
+
+      const csvContent = rows.map(r => r.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "responses.csv";
+      a.click();
+      URL.revokeObjectURL(url);
     }
   </script>
 </body>
