@@ -160,12 +160,7 @@ const mc_questions = [
     },
     {
         question: "(HARD) Why is understanding ASCII tables useful in forensic reporting? (Unit 5.2)",
-        options: [
-            "They allow binary values to be converted into readable text",
-            "They eliminate Unicode entirely",
-            "They guarantee conviction",
-            "They prevent contamination"
-        ],
+        options: ["They allow binary values to be converted into readable text","They eliminate Unicode entirely","They guarantee conviction", "They prevent contamination"],
         answer: "They allow binary values to be converted into readable text"
     },
     {
