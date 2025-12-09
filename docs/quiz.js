@@ -200,12 +200,7 @@ const mc_questions = [
     },
     {
         question: "(EXPERT) How does Unicode expand forensic analysis compared to ASCII? (Unit 5.2)",
-        options: [
-            "It supports global languages and thousands more characters",
-            "It eliminates binary storage",
-            "It guarantees conviction",
-            "It replaces chain of custody"
-        ],
+        options: ["It supports global languages and thousands more characters","It eliminates binary storage","It guarantees conviction","It replaces chain of custody"],
         answer: "It supports global languages and thousands more characters"
     },
     {
@@ -367,94 +362,260 @@ function askBonus(bonus_questions) {
   });
 }
 
+// Ensure global storage exists
+window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
+
 // -----------------------------
-// Show correct answers
+// Show correct answers (logs for teacher)
 // -----------------------------
 function showAnswers(mc_questions, short_questions, bonus_questions) {
-  let output = "--- Correct Answers ---\n";
-  mc_questions.forEach((q, idx) => {
-    output += `MC Q${idx+1}: ${q.question}\nCorrect Answer: ${q.answer}\n\n`;
+  let out = '--- Correct Answers ---\n';
+  (mc_questions || []).forEach((q, i) => {
+    out += `MC Q${i+1}: ${q.question}\nCorrect: ${q.answer}\n\n`;
   });
-  short_questions.forEach((q, idx) => {
-    output += `Short Q${idx+1}: ${q.question}\nCorrect Answer: ${q.answer}\n\n`;
+  (short_questions || []).forEach((q, i) => {
+    out += `Short Q${i+1}: ${q.question}\nSuggested: ${q.answer || 'N/A'}\n\n`;
   });
-  bonus_questions.forEach((q, idx) => {
-    output += `Bonus Q${idx+1}: ${q.question}\nSuggested Answer: ${q.answer}\n\n`;
+  (bonus_questions || []).forEach((q, i) => {
+    out += `Bonus Q${i+1}: ${q.question}\nSuggested: ${q.answer || 'N/A'}\n\n`;
   });
-  console.log(output); // ✅ logs answers for teacher review
+  console.log(out);
 }
 
 // -----------------------------
-// Show final results on results page
+// Render final results on the results page
 // -----------------------------
 function showFinalResults(score) {
-  // Store score for CSV export
-  student_responses.score = score;
+  // Save score for CSV
+  window.student_responses.score = score;
 
-  // Hide quiz page, show results page
-  document.getElementById('quizPage').style.display = 'none';
-  document.getElementById('resultsPage').style.display = 'block';
+  // Hide quiz, show results
+  const quizPage = document.getElementById('quizPage');
+  const resultsPage = document.getElementById('resultsPage');
+  if (quizPage) quizPage.style.display = 'none';
+  if (resultsPage) resultsPage.style.display = 'block';
 
-  // Display results
-  document.getElementById('results').innerHTML =
-    `<p><strong>Name:</strong> ${student_responses.student_info.name}</p>
-     <p><strong>Hour:</strong> ${student_responses.student_info.hour}</p>
-     <p><strong>Final Score:</strong> ${score} points</p>`;
+  const info = window.student_responses.student_info || {};
+  const resultsDiv = document.getElementById('results');
+  if (resultsDiv) {
+    resultsDiv.innerHTML =
+      `<div><strong>Name:</strong> ${escapeHtml(info.name || '')}</div>
+       <div><strong>Hour:</strong> ${escapeHtml(info.hour || '')}</div>
+       <div><strong>Final score:</strong> ${score} points</div>`;
+  }
 }
 
 // -----------------------------
 // Download responses as CSV
 // -----------------------------
 function downloadCSV() {
-  const info = student_responses.student_info || {};
+  const info = window.student_responses.student_info || {};
+  const mcRows = (window.student_responses.mc || []).map(m =>
+    `${escapeCsv(m.question)} -> ${escapeCsv(m.response)} (Start: ${m.start_time || ''}, End: ${m.end_time || ''})`
+  ).join('; ');
+  const shortRows = (window.student_responses.short || []).map(s =>
+    `${escapeCsv(s.question)} -> ${escapeCsv(s.response)} (Start: ${s.start_time || ''}, End: ${s.end_time || ''})`
+  ).join('; ');
+  const bonusRows = (window.student_responses.bonus || []).map(b =>
+    `${escapeCsv(b.question)} -> ${escapeCsv(b.response)} (Start: ${b.start_time || ''}, End: ${b.end_time || ''})`
+  ).join('; ');
+
   const rows = [
-    ["Name","Hour","Score","MC Responses","Short Responses","Bonus Responses"],
-    [
-      info.name || "",
-      info.hour || "",
-      student_responses.score || 0,
-      student_responses.mc.map(mc =>
-        `${mc.question} -> ${mc.response} (Start: ${mc.start_time}, End: ${mc.end_time})`
-      ).join("; "),
-      student_responses.short.map(sa =>
-        `${sa.question} -> ${sa.response} (Start: ${sa.start_time}, End: ${sa.end_time})`
-      ).join("; "),
-      student_responses.bonus.map(b =>
-        `${b.question} -> ${b.response} (Start: ${b.start_time}, End: ${b.end_time})`
-      ).join("; ")
-    ]
+    ['Name','Hour','Score','MC Responses','Short Responses','Bonus Responses'],
+    [info.name || '', info.hour || '', window.student_responses.score || 0, mcRows, shortRows, bonusRows]
   ];
 
-  const csvContent = rows.map(r => r.join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv" });
+  const csvContent = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const a = document.createElement('a');
   a.href = url;
-  a.download = "responses.csv";
+  a.download = 'responses.csv';
   a.click();
+  URL.revokeObjectURL(url);
 }
 
 // -----------------------------
-// Run the quiz
+// Core quiz runner (attach to window to ensure global visibility)
 // -----------------------------
-function runQuiz(mc_questions, short_questions, bonus_questions) {
+window.runQuiz = window.runQuiz || async function (mc_questions, short_questions, bonus_questions) {
   let score = 0;
+  const progressEl = document.getElementById('progress');
+  const quizEl = document.getElementById('quiz');
 
-  // Shuffle MC questions
-  const shuffled_mc = [...mc_questions].sort(() => Math.random() - 0.5);
-  shuffled_mc.forEach(q => { score += askMC(q); });
+  // Helper: render a single MC question as HTML buttons and return selected letter
+  function renderMC(qObj, index, total) {
+    return new Promise(resolve => {
+      if (!quizEl) return resolve(0);
+      quizEl.innerHTML = '';
+      const card = document.createElement('div');
+      card.style.padding = '12px';
+      card.style.border = '1px solid #ddd';
+      card.style.borderRadius = '8px';
+      const qTitle = document.createElement('h3');
+      qTitle.textContent = `Q${index+1}: ${qObj.question}`;
+      card.appendChild(qTitle);
 
-  // Short-answer section
-  askShort(short_questions);
+      (qObj.choices || []).forEach(choiceText => {
+        const btn = document.createElement('button');
+        btn.textContent = choiceText;
+        btn.style.display = 'block';
+        btn.style.margin = '8px 0';
+        btn.onclick = () => {
+          const now = new Date().toISOString();
+          // record response
+          window.student_responses.mc.push({
+            question: qObj.question,
+            response: (choiceText && choiceText.charAt(0)) || '',
+            start_time: now,
+            end_time: now
+          });
+          // score +4 for correct
+          const selected = (choiceText && choiceText.charAt(0)) || '';
+          const points = (selected.toUpperCase() === String(qObj.answer).toUpperCase()) ? 4 : 0;
+          resolve(points);
+        };
+        card.appendChild(btn);
+      });
 
-  // Bonus section
-  askBonus(bonus_questions);
+      quizEl.appendChild(card);
+      if (progressEl) progressEl.textContent = `Question ${index+1} of ${total}`;
+    });
+  }
 
-  // Show results page instead of alerts
-  showFinalResults(score);
+  // Run MC questions sequentially
+  const mcList = Array.isArray(mc_questions) ? mc_questions : [];
+  for (let i = 0; i < mcList.length; i++) {
+    const q = mcList[i];
+    const pts = await renderMC(q, i, mcList.length);
+    score += pts;
+  }
 
-  // Log correct answers for teacher review
+  // Short-answer: render simple textareas and record responses (no auto scoring)
+  if (Array.isArray(short_questions) && short_questions.length) {
+    quizEl.innerHTML = '';
+    for (let i = 0; i < short_questions.length; i++) {
+      const q = short_questions[i];
+      const wrapper = document.createElement('div');
+      wrapper.style.marginBottom = '12px';
+      const label = document.createElement('div');
+      label.innerHTML = `<strong>Short ${i+1}:</strong> ${q.question}`;
+      const ta = document.createElement('textarea');
+      ta.rows = 3;
+      ta.style.width = '100%';
+      ta.style.marginTop = '6px';
+      wrapper.appendChild(label);
+      wrapper.appendChild(ta);
+      quizEl.appendChild(wrapper);
+
+      // Wait for user to type and click Next
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Save answer and continue';
+      nextBtn.style.display = 'block';
+      nextBtn.style.marginTop = '8px';
+      quizEl.appendChild(nextBtn);
+
+      // Promise resolves when user clicks next
+      await new Promise(resolve => {
+        nextBtn.onclick = () => {
+          const now = new Date().toISOString();
+          window.student_responses.short.push({
+            question: q.question,
+            response: ta.value || '',
+            start_time: now,
+            end_time: now
+          });
+          // clear for next
+          quizEl.innerHTML = '';
+          resolve();
+        };
+      });
+    }
+  }
+
+  // Bonus questions: same as short but recorded separately
+  if (Array.isArray(bonus_questions) && bonus_questions.length) {
+    quizEl.innerHTML = '';
+    for (let i = 0; i < bonus_questions.length; i++) {
+      const q = bonus_questions[i];
+      const wrapper = document.createElement('div');
+      wrapper.style.marginBottom = '12px';
+      const label = document.createElement('div');
+      label.innerHTML = `<strong>Bonus ${i+1}:</strong> ${q.question}`;
+      const ta = document.createElement('textarea');
+      ta.rows = 3;
+      ta.style.width = '100%';
+      ta.style.marginTop = '6px';
+      wrapper.appendChild(label);
+      wrapper.appendChild(ta);
+      quizEl.appendChild(wrapper);
+
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Save bonus answer and continue';
+      nextBtn.style.display = 'block';
+      nextBtn.style.marginTop = '8px';
+      quizEl.appendChild(nextBtn);
+
+      await new Promise(resolve => {
+        nextBtn.onclick = () => {
+          const now = new Date().toISOString();
+          window.student_responses.bonus.push({
+            question: q.question,
+            response: ta.value || '',
+            start_time: now,
+            end_time: now
+          });
+          quizEl.innerHTML = '';
+          resolve();
+        };
+      });
+    }
+  }
+
+  // Finalize
+  window.student_responses.score = score;
+  // Show results (showFinalResults defined below)
+  if (typeof showFinalResults === 'function') {
+    showFinalResults(score);
+  } else {
+    // fallback
+    const resultsDiv = document.getElementById('quiz');
+    if (resultsDiv) resultsDiv.innerHTML = `<p class="muted">Quiz complete. Score: ${score}</p>`;
+  }
+
+  // Log answers for teacher
   showAnswers(mc_questions, short_questions, bonus_questions);
+};
+
+// -----------------------------
+// startQuiz wrapper (global)
+// -----------------------------
+function startQuiz() {
+  if (typeof window.runQuiz !== 'function') {
+    console.error('runQuiz is not defined');
+    return;
+  }
+  if (!Array.isArray(mc_questions) || !Array.isArray(short_questions) || !Array.isArray(bonus_questions)) {
+    console.error('Question arrays missing or not arrays');
+    return;
+  }
+  try {
+    window.runQuiz(mc_questions, short_questions, bonus_questions);
+  } catch (err) {
+    console.error('Error running quiz:', err);
+  }
+}
+
+// -----------------------------
+// Utility helpers
+// -----------------------------
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, function (m) {
+    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m];
+  });
+}
+function escapeCsv(s) {
+  return String(s || '').replace(/"/g, '""');
 }
 
 // -----------------------------
