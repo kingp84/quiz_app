@@ -157,7 +157,7 @@ const mc_questions = [
         question: "(MEDIUM) Convert decimal 198 into binary. (Unit 5.2)",
         options: ["1100 0110", "0010 0101", "0100 1010", "1111 1110"],
         answer: "1100 0110"
-    }
+    },
     {
         question: "(HARD) Why is understanding ASCII tables useful in forensic reporting? (Unit 5.2)",
         options: [
