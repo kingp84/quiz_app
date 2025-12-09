@@ -9,55 +9,19 @@
       margin: 24px;
       max-width: 800px;
     }
-    h1 {
-      margin-bottom: 8px;
-    }
-    .meta {
-      color: #555;
-      margin-bottom: 16px;
-    }
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .question {
-      font-weight: bold;
-      margin-bottom: 12px;
-    }
-    .options {
-      display: grid;
-      gap: 8px;
-    }
-    .options button {
-      padding: 10px 12px;
-      border: 1px solid #ccc;
+    h1 { margin-bottom: 8px; }
+    #quiz { margin-top: 20px; }
+    #downloadBtn {
+      margin-top: 20px;
+      padding: 10px 16px;
+      background: #0078d7;
+      color: white;
+      border: none;
       border-radius: 6px;
-      background: #f8f8f8;
       cursor: pointer;
     }
-    .options button:hover {
-      background: #f0f0f0;
-    }
-    .footer {
-      margin-top: 16px;
-      color: #444;
-    }
-    .correct {
-      color: #0a7c2f;
-    }
-    .incorrect {
-      color: #b30000;
-    }
-    .progress {
-      margin-top: 8px;
-      font-size: 0.95rem;
-      color: #333;
-    }
-    .result {
-      font-size: 1.2rem;
-      margin-top: 12px;
+    #downloadBtn:hover {
+      background: #005a9e;
     }
   </style>
 </head>
@@ -68,7 +32,33 @@
   <!-- Quiz container -->
   <div id="quiz"></div>
 
+  <!-- Download button for CSV -->
+  <button id="downloadBtn" onclick="downloadCSV()">Download My Responses (CSV)</button>
+
   <!-- Load quiz logic -->
   <script src="quiz.js"></script>
+  <script>
+    // Simple CSV download function
+    function downloadCSV() {
+      const info = student_responses.student_info || {};
+      const rows = [
+        ["Name","Hour","MC Responses","Short Responses","Bonus Responses"],
+        [
+          info.name || "",
+          info.hour || "",
+          student_responses.mc.map(mc => `${mc.question} -> ${mc.response}`).join("; "),
+          student_responses.short.map(sa => `${sa.question} -> ${sa.response}`).join("; "),
+          student_responses.bonus.map(b => `${b.question} -> ${b.response}`).join("; ")
+        ]
+      ];
+      const csvContent = rows.map(r => r.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "responses.csv";
+      a.click();
+    }
+  </script>
 </body>
 </html>
