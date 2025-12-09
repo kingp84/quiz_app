@@ -429,5 +429,8 @@ function runQuiz(mc_questions, short_questions, bonus_questions) {
 // -----------------------------
 // Start Quiz
 // -----------------------------
-runQuiz(mc_questions, short_questions, bonus_questions);
+function startQuiz() {
+  runQuiz(mc_questions, short_questions, bonus_questions);
+}
+
 

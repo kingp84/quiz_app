@@ -4,30 +4,37 @@
   <meta charset="UTF-8">
   <title>Forensics Quiz App</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 24px;
-      max-width: 800px;
-    }
+    body { font-family: Arial, sans-serif; margin: 24px; max-width: 800px; }
     h1 { margin-bottom: 8px; }
     #quiz { margin-top: 20px; }
-    #downloadBtn {
-      margin-top: 20px;
-      padding: 10px 16px;
-      background: #0078d7;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    #downloadBtn, #startBtn {
+      margin-top: 20px; padding: 10px 16px; background: #0078d7; color: white;
+      border: none; border-radius: 6px; cursor: pointer;
     }
-    #downloadBtn:hover {
-      background: #005a9e;
-    }
+    #downloadBtn:hover, #startBtn:hover { background: #005a9e; }
+    .note { color: #555; margin-top: 8px; }
+    ol { margin-left: 20px; }
   </style>
 </head>
 <body>
   <h1>Forensics Quiz App</h1>
   <p>Welcome! This quiz will test your knowledge of forensic science concepts. Follow the prompts carefully.</p>
+
+  <!-- Visible instructions -->
+  <div id="instructions">
+    <h2>--- Test Instructions ---</h2>
+    <ol>
+      <li>Read each multiple-choice question carefully.</li>
+      <li>Select the best answer from the options provided.</li>
+      <li>Answer short-answer questions in complete sentences.</li>
+      <li>The bonus questions can earn extra points but will not subtract points.</li>
+      <li>Do your best and good luck!</li>
+    </ol>
+  </div>
+
+  <!-- Start button triggers quiz -->
+  <button id="startBtn" onclick="startQuiz()">Start Test</button>
+  <div class="note">Click “Start Test” to begin. If prompts don’t appear, allow pop‑ups in your browser.</div>
 
   <!-- Quiz container -->
   <div id="quiz"></div>
@@ -37,28 +44,5 @@
 
   <!-- Load quiz logic -->
   <script src="quiz.js"></script>
-  <script>
-    // Simple CSV download function
-    function downloadCSV() {
-      const info = student_responses.student_info || {};
-      const rows = [
-        ["Name","Hour","MC Responses","Short Responses","Bonus Responses"],
-        [
-          info.name || "",
-          info.hour || "",
-          student_responses.mc.map(mc => `${mc.question} -> ${mc.response}`).join("; "),
-          student_responses.short.map(sa => `${sa.question} -> ${sa.response}`).join("; "),
-          student_responses.bonus.map(b => `${b.question} -> ${b.response}`).join("; ")
-        ]
-      ];
-      const csvContent = rows.map(r => r.join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "responses.csv";
-      a.click();
-    }
-  </script>
 </body>
 </html>
