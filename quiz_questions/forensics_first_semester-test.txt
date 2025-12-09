@@ -1,6 +1,23 @@
-'25-'26 F-1st Semester Test
+# Forensics 1st Semester Test (Multiple Choice + Short Answer)
+import random
+import csv
+import os
+from datetime import datetime
 
-Instructor name: Patrick King
+# ✅ Global instructions for the whole test
+instructions = """
+'25-'26 Forensics 1st Semester Test Instructions:
+-----------------------------------------
+1. Read each multiple-choice question carefully.
+2. Select the best answer from the options provided.
+3. For short-answer prompts, write your response in complete sentences.
+4. You will be graded on both accuracy and clarity.
+5. Questions are written at different difficulty levels:
+    Easy- basic recall, memory
+    Medium- concepts and skills
+    Hard- strategic thinking
+    Expert knowledge- extended reasoning and application
+"""
 
 # -----------------------------
 # Multiple-choice questions
@@ -8,7 +25,7 @@ Instructor name: Patrick King
 
 mc_questions = [
     {
-        "multiple_choice_question": "(MEDIUM) Which amendment governs searches and seizures in the United States? (Unit 6.1)",
+        "multiple_choice_question": "(EASY) Which amendment governs searches and seizures in the United States? (Unit 2.7)",
         "answer": "Fourth Amendment",
         "options": ["First Amendment", "Fourth Amendment", "Fifth Amendment", "Sixth Amendment"]
     },
@@ -64,7 +81,7 @@ mc_questions = [
     },
     {
         "multiple_choice_question": "(EXPERT) How do geographic factors influence offender profiling? (Unit 6.1)",
-        "answer": "They reveal offender proximity and movement patters",
+        "answer": "They reveal offender proximity and movement patterns",
         "options": ["They reveal offender proximity and movement patterns", "They eliminate the need for victimology", "They guarantee conviction", "They replace forensic evidence"]
     },
     {
@@ -95,7 +112,7 @@ mc_questions = [
     {
         "multiple_choice_question": "(MEDIUM) Why does the grid search provide multiple perspectives? (Unit 2.3)",
         "answer": "It uses two sets of strips at right angles",
-        "options": ["It uses two sets of strips at right angles", "It requires fewer searches", "It eliminates the need for supervision", "It is faster than all other methods"]
+        "options": ["It uses two sets of strips at right angles", "It requires fewer searchers", "It eliminates the need for supervision", "It is faster than all other methods"]
     },
     {
         "multiple_choice_question": "(HARD) How does victim risk level inform offender selection? (Unit 6.1)",
@@ -140,8 +157,8 @@ mc_questions = [
     {
         "multiple_choice_question": "(HARD) How does offender organization level affect investigative strategies? (Unit 6.1)",
         "answer": "Organized offenders require different interview approaches than disorganized offenders",
-        "options": ["Organized offenders require different interview approaches than disorganized offenders", "Organized offenders are always guilty", "Disorganized offenders never leave evidence", "Organization level eliminates forensic analysis"]
-    },
+        "options": ["Organized offenders require different interview approaches than disorganized offenders", "Organized offenders are always guilty", "Disorganized offenders never leave evidence", "Organization level eliminates forensic analysis],
+    }
     {
         "multiple_choice_question": "(EXPERT) Why is chain of custody documentation more complex for digital evidence than physical evidence? (Unit 5.2)",
         "answer": "Digital evidence can be altered invisibly and requires detailed logs",
@@ -200,7 +217,7 @@ mc_questions = [
     {
         "multiple_choice_question": "(HARD) How does victim risk level inform offender selection? (Unit 6.1)",
         "answer": "It reveals lifestyle traits that make victims more or less likely to be targeted",
-        "options": ["FIt reveals lifestyle traits that make victims more or less likely to be targeted", "It guarantees offender guilt", "It eliminates the need for profiling", "It replaces forensic evidence"]
+        "options": ["It reveals lifestyle traits that make victims more or less likely to be targeted", "It guarantees offender guilt", "It eliminates the need for profiling", "It replaces forensic evidence"]
     },
     {
         "multiple_choice_question": "(EXPERT) What is a limitation of criminal profiling in court? (Unit 6.1)",
@@ -246,8 +263,9 @@ mc_questions = [
         "multiple_choice_question": "(EXPERT) How do binary and ASCII conversions support forensic analysis? (Unit 5.2)",
         "answer": "They enable investigators to interpret raw data and text evidence correctly",
         "options": ["They enable investigators to interpret raw data and text evidence correctly", "They eliminate the need for chain of custody", "They guarantee conviction", "They replace behavioral profiling"]
-	}
+    }
 ]
+
 # -----------------------------
 # Short-answer questions
 # -----------------------------
@@ -285,3 +303,212 @@ bonus_question = [
         "answer": "Profiling is a tool, useful but must be combined with forensic evidence."
     }
 ]
+
+# -----------------------------
+# Storage for student responses
+# -----------------------------
+student_responses = {"mc": [], "short": [], "bonus": None, "student_info": {}}
+
+# -----------------------------
+# Utility: clear the screen
+# -----------------------------
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+# -----------------------------
+# Welcome screen
+# -----------------------------
+def welcome_screen():
+    print("=======================================")
+    print(" Welcome to the '25-'26 1st Semester Test!")
+    print("=======================================")
+    name = input("Please enter your first and last name: ").strip()
+    hour = input("Please enter your class hour (e.g., 1st hour, 7th hour): ").strip()
+    student_responses["student_info"] = {"name": name, "hour": hour}
+
+    print("\n--- Test Instructions ---")
+    print("1. Read each multiple-choice question carefully.")
+    print("2. Select the best answer from the options provided.")
+    print("3. Answer short-answer questions in complete sentences.")
+    print("4. The bonus question can earn up to 10 points but will not subtract points.")
+    print("5. Do your best and good luck!\n")
+
+# -----------------------------
+# Pause before test
+# -----------------------------
+def pause_before_test():
+    input("\nPress Enter to begin the test...")
+    clear_screen()  # ✅ Clear screen after pressing Enter
+
+# -----------------------------
+# Multiple-choice question with validation + timestamps
+# -----------------------------
+def ask_mc(q):
+    print("\nMultiple Choice Question:")
+    print(q["multiple_choice_question"])
+
+    options = q["options"].copy()
+    random.shuffle(options)
+
+    print("\nChoose the correct answer:")
+    for i, option in enumerate(options, start=1):
+        print(f"{i}. {option}")
+
+    start_time = datetime.now()
+
+    while True:
+        choice = input("Choose the correct option (1-4): ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(options):
+            choice = int(choice)
+            break
+        else:
+            print("Invalid input. Please enter a number between 1 and 4.")
+
+    end_time = datetime.now()
+
+    selected = options[choice - 1]
+    student_responses["mc"].append({
+        "question": q["multiple_choice_question"],
+        "response": selected,
+        "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S")
+    })
+
+    if selected.lower() == q["answer"].lower():
+        print("✅ Correct! +4 points")
+        return 4
+    else:
+        print("❌ Incorrect. 0 points")
+        print(f"Correct answer: {q['answer']}")
+        return 0
+
+# -----------------------------
+# Short-answer questions with validation + timestamps
+# -----------------------------
+def ask_short(short_questions):
+    print("\nShort-Answer Section:")
+    for q in short_questions:
+        print(q["short_answer_question"])
+        start_time = datetime.now()
+        while True:
+            response = input("Your answer: ").strip()
+            if response:
+                break
+            else:
+                print("Response cannot be empty. Please type your answer.")
+        end_time = datetime.now()
+        student_responses["short"].append({
+            "question": q["short_answer_question"],
+            "response": response,
+            "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+# -----------------------------
+# Bonus question with validation + timestamps
+# -----------------------------
+def ask_bonus(bonus_question):
+    print("\nBonus Short-Answer Question:")
+    print(bonus_question["short_answer_question"])
+    start_time = datetime.now()
+    while True:
+        response = input("Your answer: ").strip()
+        if response:
+            break
+        else:
+            print("Response cannot be empty. Please type your answer.")
+    end_time = datetime.now()
+    student_responses["bonus"] = {
+        "response": response,
+        "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    while True:
+        bonus_score = input("Enter bonus points awarded (0-10): ").strip()
+        if bonus_score.isdigit():
+            bonus_score = int(bonus_score)
+            if 0 <= bonus_score <= 10:
+                break
+        print("Invalid input. Please enter a number between 0 and 10.")
+
+    print(f"Bonus points awarded: {bonus_score}")
+    return bonus_score
+
+# -----------------------------
+# Show correct answers
+# -----------------------------
+def show_answers(mc_questions, short_questions, bonus_question):
+    print("\n--- Correct Answers ---")
+    for idx, q in enumerate(mc_questions, start=1):
+        print(f"MC Q{idx}: {q['multiple_choice_question']}")
+        print(f"Correct Answer: {q['answer']}\n")
+
+    for idx, q in enumerate(short_questions, start=1):
+        print(f"Short Q{idx}: {q['short_answer_question']}")
+        print(f"Correct Answer: {q['answer']}\n")
+
+    print(f"Bonus Q: {bonus_question['short_answer_question']}")
+    print(f"Suggested Answer: {bonus_question['answer']}\n")
+
+# -----------------------------
+# Save results to CSV (per hour)
+# -----------------------------
+def save_responses_to_csv(score, bonus_question):
+    info = student_responses["student_info"]
+    name = info["name"]
+    hour = info["hour"].lower()
+
+    if "1" in hour:
+        folder = "student_responses/first_hour"
+        filename = "grades.csv"
+    elif "7" in hour:
+        folder = "student_responses/seventh_hour"
+        filename = "grades.csv"
+    else:
+        folder = "student_responses"
+        filename = "grades.csv"
+
+    os.makedirs(folder, exist_ok=True)
+    filepath = os.path.join(folder, filename)
+
+    file_exists = os.path.isfile(filepath)
+    with open(filepath, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["Name", "Hour", "Score", "MC Responses", "Short Responses", "Bonus Response"])
+        mc_resps = "; ".join([f"{mc['question']} -> {mc['response']} (Start: {mc['start_time']}, End: {mc['end_time']})" for mc in student_responses["mc"]])
+        short_resps = "; ".join([f"{sa['question']} -> {sa['response']} (Start: {sa['start_time']}, End: {sa['end_time']})" for sa in student_responses["short"]])
+        bonus_resp = f"{bonus_question['short_answer_question']} -> {student_responses['bonus']['response']} (Start: {student_responses['bonus']['start_time']}, End: {student_responses['bonus']['end_time']})"
+        writer.writerow([info["name"], info["hour"], score, mc_resps, short_resps, bonus_resp])
+
+    print(f"\n✅ Responses saved to {filepath}")
+
+# -----------------------------
+# Run the quiz
+# -----------------------------
+def run_quiz(mc_questions, short_questions, bonus_question):
+    welcome_screen()
+    pause_before_test()
+
+    score = 0
+    shuffled_mc = mc_questions.copy()
+    random.shuffle(shuffled_mc)
+
+    for q in shuffled_mc:
+        score += ask_mc(q)
+
+    ask_short(short_questions)
+    score += ask_bonus(bonus_question)
+
+    print("\n=======================================")
+    print(f"Final Score: {score} points")
+    print("=======================================")
+    print("\nStudent Info:", student_responses["student_info"])
+    print("\nRecorded Student Responses:")
+    print(student_responses)
+
+    show_answers(mc_questions, short_questions, bonus_question)
+    save_responses_to_csv(score, bonus_question)
+
+run_quiz(mc_questions, short_questions, bonus_question)

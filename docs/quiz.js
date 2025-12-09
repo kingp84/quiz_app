@@ -362,8 +362,42 @@ function askBonus(bonus_questions) {
   });
 }
 
+// -----------------------------
+// Configuration for GitHub commit (OPTIONAL)
+// -----------------------------
+// WARNING: Committing directly from client-side exposes a token to users.
+// Recommended: implement a server endpoint that accepts the CSV and commits it securely.
+// If you still want to commit directly from the browser for testing, set:
+//   window.GITHUB_COMMIT_CONFIG = {
+//     owner: "kingp84",           // your GitHub username or org
+//     repo: "quiz_app",           // repository name
+//     branch: "main",            // branch to commit to
+//     token: "ghp_XXXXXXXXXXXXXXXXXXXX" // PERSONAL ACCESS TOKEN (scoped to repo)
+//   };
+// Do NOT embed a long-lived token in production client code.
+window.GITHUB_COMMIT_CONFIG = window.GITHUB_COMMIT_CONFIG || null;
+
+// -----------------------------
 // Ensure global storage exists
+// -----------------------------
 window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
+
+// -----------------------------
+// Utility: CSV / Base64 helpers
+// -----------------------------
+function escapeCsvCell(s) {
+  const str = String(s == null ? "" : s);
+  return `"${str.replace(/"/g, '""')}"`;
+}
+function csvRow(cells) {
+  return cells.map(escapeCsvCell).join(",");
+}
+function utf8ToB64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64ToUtf8(b64) {
+  return decodeURIComponent(escape(atob(b64)));
+}
 
 // -----------------------------
 // Show correct answers (logs for teacher)
@@ -386,15 +420,11 @@ function showAnswers(mc_questions, short_questions, bonus_questions) {
 // Render final results on the results page
 // -----------------------------
 function showFinalResults(score) {
-  // Save score for CSV
   window.student_responses.score = score;
-
-  // Hide quiz, show results
   const quizPage = document.getElementById('quizPage');
   const resultsPage = document.getElementById('resultsPage');
   if (quizPage) quizPage.style.display = 'none';
   if (resultsPage) resultsPage.style.display = 'block';
-
   const info = window.student_responses.student_info || {};
   const resultsDiv = document.getElementById('results');
   if (resultsDiv) {
@@ -406,44 +436,116 @@ function showFinalResults(score) {
 }
 
 // -----------------------------
-// Download responses as CSV
+// Append responses to a single CSV in the repo (per-hour file)
 // -----------------------------
-function downloadCSV() {
+// This function uses the GitHub Contents API to fetch the existing CSV (if any),
+// append a new row, and PUT the updated file back to the repo.
+// NOTE: Direct client commits require a token and are insecure in production.
+async function appendResponsesToRepoByHour() {
+  const cfg = window.GITHUB_COMMIT_CONFIG;
+  if (!cfg || !cfg.token) {
+    console.warn('GitHub commit config not provided; skipping repo append.');
+    return { ok: false, reason: 'no-config' };
+  }
+
+  const owner = cfg.owner;
+  const repo = cfg.repo;
+  const branch = cfg.branch || 'main';
+  const token = cfg.token;
+  const hour = (window.student_responses.student_info && window.student_responses.student_info.hour) || 'unknown_hour';
+  const filePath = `student_responses/${sanitizeFilename(hour)}.csv`;
+  const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}`;
+
+  // Build CSV row for this student
   const info = window.student_responses.student_info || {};
-  const mcRows = (window.student_responses.mc || []).map(m =>
-    `${escapeCsv(m.question)} -> ${escapeCsv(m.response)} (Start: ${m.start_time || ''}, End: ${m.end_time || ''})`
-  ).join('; ');
-  const shortRows = (window.student_responses.short || []).map(s =>
-    `${escapeCsv(s.question)} -> ${escapeCsv(s.response)} (Start: ${s.start_time || ''}, End: ${s.end_time || ''})`
-  ).join('; ');
-  const bonusRows = (window.student_responses.bonus || []).map(b =>
-    `${escapeCsv(b.question)} -> ${escapeCsv(b.response)} (Start: ${b.start_time || ''}, End: ${b.end_time || ''})`
-  ).join('; ');
-
-  const rows = [
-    ['Name','Hour','Score','MC Responses','Short Responses','Bonus Responses'],
-    [info.name || '', info.hour || '', window.student_responses.score || 0, mcRows, shortRows, bonusRows]
+  const mcCells = (window.student_responses.mc || []).map(m => `${m.question} -> ${m.response}`).join(" ; ");
+  const shortCells = (window.student_responses.short || []).map(s => `${s.question} -> ${s.response}`).join(" ; ");
+  const bonusCells = (window.student_responses.bonus || []).map(b => `${b.question} -> ${b.response}`).join(" ; ");
+  const row = [
+    info.name || '',
+    info.hour || '',
+    window.student_responses.score || 0,
+    mcCells,
+    shortCells,
+    bonusCells
   ];
+  const newRow = csvRow(row) + "\n";
 
-  const csvContent = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'responses.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  // Fetch existing file (if exists)
+  let existingContent = "";
+  let sha = null;
+  try {
+    const res = await fetch(`${apiBase}?ref=${encodeURIComponent(branch)}`, {
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (res.status === 200) {
+      const json = await res.json();
+      sha = json.sha;
+      existingContent = b64ToUtf8(json.content.replace(/\n/g, ""));
+    } else if (res.status === 404) {
+      existingContent = ""; // file doesn't exist yet
+    } else {
+      const txt = await res.text();
+      console.error('GitHub fetch error', res.status, txt);
+      return { ok: false, reason: 'fetch-failed', status: res.status, text: txt };
+    }
+  } catch (err) {
+    console.error('Error fetching existing CSV:', err);
+    return { ok: false, reason: 'fetch-exception', error: String(err) };
+  }
+
+  // If file empty, add header row first
+  const header = csvRow(['Name','Hour','Score','MC Responses','Short Responses','Bonus Responses']) + "\n";
+  const updatedContent = (existingContent.trim() === "" ? header : existingContent) + newRow;
+  const encoded = utf8ToB64(updatedContent);
+
+  // Commit (create or update)
+  const commitMessage = `Add response for ${info.name || 'unknown'} (${hour})`;
+  const body = {
+    message: commitMessage,
+    content: encoded,
+    branch: branch
+  };
+  if (sha) body.sha = sha;
+
+  try {
+    const putRes = await fetch(apiBase, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    const putJson = await putRes.json();
+    if (putRes.ok) {
+      console.log('CSV updated in repo:', filePath);
+      return { ok: true, result: putJson };
+    } else {
+      console.error('GitHub commit failed', putRes.status, putJson);
+      return { ok: false, reason: 'commit-failed', status: putRes.status, json: putJson };
+    }
+  } catch (err) {
+    console.error('Error committing CSV to repo:', err);
+    return { ok: false, reason: 'commit-exception', error: String(err) };
+  }
 }
 
 // -----------------------------
-// Core quiz runner (attach to window to ensure global visibility)
+// Core quiz runner (global) with "questions remaining" updates
 // -----------------------------
 window.runQuiz = window.runQuiz || async function (mc_questions, short_questions, bonus_questions) {
   let score = 0;
   const progressEl = document.getElementById('progress');
   const quizEl = document.getElementById('quiz');
 
-  // Helper: render a single MC question as HTML buttons and return selected letter
+  function updateRemaining(total, asked) {
+    const remaining = Math.max(0, total - asked);
+    if (progressEl) progressEl.textContent = `${remaining} question${remaining === 1 ? '' : 's'} remaining`;
+  }
+
+  // Render MC question and show remaining count inside the question card
   function renderMC(qObj, index, total) {
     return new Promise(resolve => {
       if (!quizEl) return resolve(0);
@@ -452,9 +554,24 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
       card.style.padding = '12px';
       card.style.border = '1px solid #ddd';
       card.style.borderRadius = '8px';
+
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
       const qTitle = document.createElement('h3');
+      qTitle.style.margin = '0';
       qTitle.textContent = `Q${index+1}: ${qObj.question}`;
-      card.appendChild(qTitle);
+      const remainingBadge = document.createElement('div');
+      remainingBadge.style.background = '#f0f0f0';
+      remainingBadge.style.padding = '6px 10px';
+      remainingBadge.style.borderRadius = '8px';
+      remainingBadge.style.fontWeight = '600';
+      const remainingCount = Math.max(0, total - (index + 1));
+      remainingBadge.textContent = `${remainingCount} remaining`;
+      header.appendChild(qTitle);
+      header.appendChild(remainingBadge);
+      card.appendChild(header);
 
       (qObj.choices || []).forEach(choiceText => {
         const btn = document.createElement('button');
@@ -463,14 +580,12 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
         btn.style.margin = '8px 0';
         btn.onclick = () => {
           const now = new Date().toISOString();
-          // record response
           window.student_responses.mc.push({
             question: qObj.question,
             response: (choiceText && choiceText.charAt(0)) || '',
             start_time: now,
             end_time: now
           });
-          // score +4 for correct
           const selected = (choiceText && choiceText.charAt(0)) || '';
           const points = (selected.toUpperCase() === String(qObj.answer).toUpperCase()) ? 4 : 0;
           resolve(points);
@@ -479,7 +594,7 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
       });
 
       quizEl.appendChild(card);
-      if (progressEl) progressEl.textContent = `Question ${index+1} of ${total}`;
+      updateRemaining(total, index + 1);
     });
   }
 
@@ -491,31 +606,42 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
     score += pts;
   }
 
-  // Short-answer: render simple textareas and record responses (no auto scoring)
+  // Short-answer: show remaining count and a textarea per question
   if (Array.isArray(short_questions) && short_questions.length) {
-    quizEl.innerHTML = '';
     for (let i = 0; i < short_questions.length; i++) {
       const q = short_questions[i];
+      quizEl.innerHTML = '';
       const wrapper = document.createElement('div');
       wrapper.style.marginBottom = '12px';
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
       const label = document.createElement('div');
       label.innerHTML = `<strong>Short ${i+1}:</strong> ${q.question}`;
+      const remainingBadge = document.createElement('div');
+      const remainingCount = Math.max(0, (short_questions.length - (i + 1)) + (bonus_questions ? bonus_questions.length : 0));
+      remainingBadge.textContent = `${remainingCount} remaining`;
+      remainingBadge.style.background = '#f0f0f0';
+      remainingBadge.style.padding = '6px 10px';
+      remainingBadge.style.borderRadius = '8px';
+      header.appendChild(label);
+      header.appendChild(remainingBadge);
+      wrapper.appendChild(header);
+
       const ta = document.createElement('textarea');
       ta.rows = 3;
       ta.style.width = '100%';
       ta.style.marginTop = '6px';
-      wrapper.appendChild(label);
       wrapper.appendChild(ta);
-      quizEl.appendChild(wrapper);
 
-      // Wait for user to type and click Next
       const nextBtn = document.createElement('button');
       nextBtn.textContent = 'Save answer and continue';
       nextBtn.style.display = 'block';
       nextBtn.style.marginTop = '8px';
-      quizEl.appendChild(nextBtn);
+      wrapper.appendChild(nextBtn);
 
-      // Promise resolves when user clicks next
+      quizEl.appendChild(wrapper);
+
       await new Promise(resolve => {
         nextBtn.onclick = () => {
           const now = new Date().toISOString();
@@ -525,36 +651,47 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
             start_time: now,
             end_time: now
           });
-          // clear for next
-          quizEl.innerHTML = '';
           resolve();
         };
       });
     }
   }
 
-  // Bonus questions: same as short but recorded separately
+  // Bonus questions: similar UI and remaining count
   if (Array.isArray(bonus_questions) && bonus_questions.length) {
-    quizEl.innerHTML = '';
     for (let i = 0; i < bonus_questions.length; i++) {
       const q = bonus_questions[i];
+      quizEl.innerHTML = '';
       const wrapper = document.createElement('div');
       wrapper.style.marginBottom = '12px';
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
       const label = document.createElement('div');
       label.innerHTML = `<strong>Bonus ${i+1}:</strong> ${q.question}`;
+      const remainingBadge = document.createElement('div');
+      const remainingCount = Math.max(0, bonus_questions.length - (i + 1));
+      remainingBadge.textContent = `${remainingCount} remaining`;
+      remainingBadge.style.background = '#f0f0f0';
+      remainingBadge.style.padding = '6px 10px';
+      remainingBadge.style.borderRadius = '8px';
+      header.appendChild(label);
+      header.appendChild(remainingBadge);
+      wrapper.appendChild(header);
+
       const ta = document.createElement('textarea');
       ta.rows = 3;
       ta.style.width = '100%';
       ta.style.marginTop = '6px';
-      wrapper.appendChild(label);
       wrapper.appendChild(ta);
-      quizEl.appendChild(wrapper);
 
       const nextBtn = document.createElement('button');
       nextBtn.textContent = 'Save bonus answer and continue';
       nextBtn.style.display = 'block';
       nextBtn.style.marginTop = '8px';
-      quizEl.appendChild(nextBtn);
+      wrapper.appendChild(nextBtn);
+
+      quizEl.appendChild(wrapper);
 
       await new Promise(resolve => {
         nextBtn.onclick = () => {
@@ -565,7 +702,6 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
             start_time: now,
             end_time: now
           });
-          quizEl.innerHTML = '';
           resolve();
         };
       });
@@ -574,13 +710,22 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
 
   // Finalize
   window.student_responses.score = score;
-  // Show results (showFinalResults defined below)
   if (typeof showFinalResults === 'function') {
     showFinalResults(score);
   } else {
-    // fallback
-    const resultsDiv = document.getElementById('quiz');
-    if (resultsDiv) resultsDiv.innerHTML = `<p class="muted">Quiz complete. Score: ${score}</p>`;
+    if (quizEl) quizEl.innerHTML = `<p class="muted">Quiz complete. Score: ${score}</p>`;
+  }
+
+  // Attempt to append to repo CSV (if configured)
+  try {
+    const appendResult = await appendResponsesToRepoByHour();
+    if (appendResult && appendResult.ok) {
+      console.log('Responses appended to repo successfully.');
+    } else {
+      console.warn('Responses not appended to repo:', appendResult);
+    }
+  } catch (err) {
+    console.error('Error appending responses to repo:', err);
   }
 
   // Log answers for teacher
@@ -607,15 +752,15 @@ function startQuiz() {
 }
 
 // -----------------------------
-// Utility helpers
+// Small helpers
 // -----------------------------
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, function (m) {
     return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m];
   });
 }
-function escapeCsv(s) {
-  return String(s || '').replace(/"/g, '""');
+function sanitizeFilename(s) {
+  return String(s || 'unknown').replace(/[\/\\#%&{}<>*? $!'":@+`|=]/g, '_');
 }
 
 // -----------------------------
