@@ -429,7 +429,6 @@ function prepareSession(questions = []) {
   window.sessionMapping = mapping;
   // Expose shuffledQuestions for startQuiz if you want to pass them in
   return { seed, mapping, shuffledQuestions };
-}
 
 // Expose prepareSession globally
 window.prepareSession = window.prepareSession || prepareSession;
