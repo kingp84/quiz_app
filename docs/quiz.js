@@ -682,6 +682,7 @@ function runQuiz(...args) {
   }
   console.error('startQuiz is not defined; runQuiz() cannot start the quiz.');
 }
+window.prepareSession = window.prepareSession || prepareSession;
 window.startQuiz = window.startQuiz || startQuiz;
 
 
