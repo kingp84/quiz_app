@@ -300,40 +300,70 @@ window.bonus_questions = window.bonus_questions || (typeof bonus_questions !== '
 // -----------------------------
 // Shuffle utilities and session preparation
 // -----------------------------
-function shuffleArray(arr, rng) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+// Fisher-Yates shuffle (in-place)
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return a;
+  return arr;
 }
 
-function createSeed() {
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
+// Make a deep-ish copy of a question (so original stays unchanged)
+function copyQuestion(q) {
+  return {
+    question: q.question,
+    choices: Array.isArray(q.choices) ? q.choices.slice() : [],
+    // keep original answer value (string or index) for mapping
+    answer: q.answer
+  };
 }
 
-function mulberry32(seedHex) {
-  let t = parseInt(seedHex.slice(0,8), 16) >>> 0;
-  return function() { t += 0x6D2B79F5; let r = Math.imul(t ^ t >>> 15, t | 1); r ^= r + Math.imul(r ^ r >>> 7, r | 61); return ((r ^ r >>> 14) >>> 0) / 4294967296; };
-}
+// Prepare a session: shuffle questions and shuffle choices per question
+function prepareSession(questions = []) {
+  // Keep originalQuestions as-is; work on copies
+  const copied = (questions || []).map(copyQuestion);
 
-async function prepareSession(mcQuestions) {
-  const seed = createSeed();
-  const rng = mulberry32(seed);
-  const shuffledQuestions = shuffleArray(mcQuestions, rng);
-  const mapping = shuffledQuestions.map(q => {
-    const shuffledChoices = shuffleArray(q.choices, rng);
-    const correctIndex = shuffledChoices.findIndex(c => c === q.answer);
+  // Shuffle question order
+  const shuffledQuestions = shuffleArray(copied.slice());
+
+  // Build sessionMapping: for each shuffled question, shuffle choices and compute correctIndex
+  const sessionMapping = shuffledQuestions.map(q => {
+    // If answer is stored as text, find index in original choices
+    const originalAnswerValue = q.answer;
+    // Shuffle choices (operate on q.choices which is already a copy)
+    const shuffledChoices = shuffleArray(q.choices.slice());
+    // Determine correct index in shuffledChoices
+    const correctIndex = shuffledChoices.findIndex(c => c === originalAnswerValue);
+    // If original answer was an index (number), handle that too
+    if (typeof originalAnswerValue === 'number' && originalAnswerValue >= 0) {
+      const originalValue = q.choices[originalAnswerValue];
+      return {
+        question: q.question,
+        choices: shuffledChoices,
+        correctIndex: shuffledChoices.findIndex(c => c === originalValue),
+        originalAnswer: originalValue
+      };
+    }
     return {
-      originalQuestion: q.question,
-      shuffledChoices,
+      question: q.question,
+      choices: shuffledChoices,
       correctIndex,
-      originalAnswer: q.answer
+      originalAnswer: originalAnswerValue
     };
   });
+
+  // Return both the shuffled questions (with shuffled choices) and the mapping
+  return {
+    shuffledQuestions: sessionMapping.map(m => ({
+      question: m.question,
+      choices: m.choices,
+      // store correctIndex so UI can check answers
+      correctIndex: m.correctIndex
+    })),
+    sessionMapping
+  };
+}
 
   // Expose for client use and optional server persistence
   window.sessionSeed = seed;
@@ -679,8 +709,13 @@ console.log('Loaded quiz.js at', new Date().toISOString());
 
 // define startQuiz (place this before any export or calls)
 function startQuiz(questions = null) {
-  if (Array.isArray(questions) && questions.length) mc_questions = questions;
+  if (Array.isArray(questions) && questions.length) {
+    // mc_questions must be declared with let earlier
+    mc_questions = questions;
+  }
   currentIndex = 0;
+  showQuestion(); // your existing UI function should read mc_questions[currentIndex]
+}
 
   if (!window.sessionMapping || !window.sessionMapping.length) {
     window.sessionMapping = (mc_questions || []).map(q => ({

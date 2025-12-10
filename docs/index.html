@@ -76,7 +76,7 @@
     <div id="quiz"></div>
     <div id="progress" class="progress"></div>
       <div id="quizContainer"></div>
-      <button onclick="startQuiz()">Start Quiz</button>
+      <button id="startQuizBtn" type="button">Start Quiz</button>
   </div>
 
   <!-- Results page (hidden until finish) -->
@@ -135,22 +135,6 @@
   quizEl.appendChild(card);
 })();
 </script>
-
-  <script>
-    (async function(){
-      // prepareSession is defined in quiz.js
-      const result = await window.prepareSession(window.mc_questions || []);
-      // startQuiz should accept the shuffled questions or use window.sessionMapping
-      if (typeof window.startQuiz === 'function') {
-        // If your startQuiz expects the shuffled questions, pass them:
-        // window.startQuiz(result.shuffledQuestions);
-        // Otherwise call startQuiz() which can use window.sessionMapping
-        window.startQuiz();
-      } else {
-        console.error('startQuiz not defined after quiz.js loaded');
-      }
-    })();
-  </script>
 
   </body>
 </html>
@@ -243,6 +227,20 @@
 
   <!-- load quiz logic -->
   <script src="quiz.js?v=1"></script>
+
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('startQuizBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (typeof window.startQuiz === 'function') {
+        window.startQuiz();
+      } else {
+        console.error('startQuiz not available yet.');
+      }
+    });
+  });
+</script>
 
   <script>
     console.log('DEBUG after quiz.js load: prepareSession=', typeof window.prepareSession, 'startQuiz=', typeof window.startQuiz);
