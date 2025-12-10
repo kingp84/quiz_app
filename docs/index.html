@@ -7,41 +7,92 @@
   <style>
     :root {
       --primary: #0b5cab;
+      --primary-dark: #08427a;
       --card-bg: #fff;
       --page-bg: #f4f6f9;
       --muted: #666;
     }
-    body { font-family: "Segoe UI", Arial, sans-serif; margin: 24px; max-width: 880px; background: var(--page-bg); color:#222; }
-    .banner { display:flex; align-items:center; justify-content:space-between; background:#111; color:#fff; padding:14px 18px; border-radius:10px; margin-bottom:18px; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 20px;
+      max-width: 980px;
+      background: var(--page-bg);
+      color: #222;
+    }
+    .banner {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background:#111;
+      color:#fff;
+      padding:14px 18px;
+      border-radius:10px;
+      margin-bottom:18px;
+    }
     .banner h1 { margin:0; font-size:1.3rem; }
-    .card { background:var(--card-bg); border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); margin-bottom:16px; border:1px solid #ddd; }
+    .card {
+      background:var(--card-bg);
+      border-radius:10px;
+      padding:16px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.06);
+      margin-bottom:16px;
+      border:1px solid #ddd;
+    }
     label { font-weight:600; display:block; margin-top:10px; }
-    input[type="text"] { width:100%; padding:10px; border-radius:8px; border:1px solid #bbb; margin-top:6px; }
-    button { margin-top:14px; padding:10px 16px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; }
-    button:hover { background:#08427a; }
+    input[type="text"], textarea {
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:1px solid #bbb;
+      margin-top:6px;
+      font-size:1rem;
+      box-sizing:border-box;
+    }
+    button {
+      margin-top:14px;
+      padding:10px 16px;
+      background:var(--primary);
+      color:#fff;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button:hover { background:var(--primary-dark); }
     .muted { color:var(--muted); font-size:0.95rem; margin-top:8px; }
     #intro, #quizPage, #resultsPage { display:none; }
     #intro { display:block; }
     #quiz { margin-top:12px; }
     .progress { margin-top:10px; color:var(--muted); }
+    .badge {
+      background:#f0f0f0;
+      padding:6px 10px;
+      border-radius:8px;
+      font-weight:600;
+    }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { border:1px solid #e6e6e6; padding:8px; text-align:left; }
+    th { background:#fafafa; }
+    .admin-controls { display:flex; gap:8px; align-items:center; margin-top:8px; }
+    .hidden { display:none !important; }
   </style>
 </head>
 <body>
   <div class="banner">
-    <h1>Forensics Quiz App 🕵️</h1>
-    <div style="font-weight:700; background:linear-gradient(90deg,#f9d71c,#f39c12); padding:6px 10px; border-radius:6px; color:#111;">CRIME SCENE</div>
+    <h1>Forensics Quiz App</h1>
+    <div class="badge">CRIME SCENE</div>
   </div>
 
   <!-- Intro / instructions -->
   <div id="intro" class="card">
     <p>Welcome! This quiz will test your knowledge of forensic science concepts. Follow the instructions carefully.</p>
-    <h2>--- Test Instructions ---</h2>
+    <h2>Test Instructions</h2>
     <ol>
       <li>Read each multiple-choice question carefully.</li>
-      <li>Select the best answer from the options provided.</li>
+      <li>Select the best answer from the options provided (no popups).</li>
       <li>Answer short-answer questions in complete sentences.</li>
       <li>Bonus questions can earn extra points but never subtract points.</li>
-      <li>Do your best and good luck!</li>
+      <li>75% or higher on a unit = proficient.</li>
     </ol>
 
     <form id="studentForm" autocomplete="on" class="muted">
@@ -65,103 +116,43 @@
   <div id="resultsPage" class="card">
     <h2>Quiz complete</h2>
     <div id="results"></div>
-    <button id="downloadBtn">Download my responses (CSV)</button>
+    <div style="margin-top:12px;">
+      <button id="downloadBtn">Download my responses (CSV)</button>
+      <button id="teacherSaveBtn" style="margin-left:8px;">Save to class file (teacher only)</button>
+    </div>
     <div class="muted">Save the CSV and send it to your teacher if requested.</div>
   </div>
 
-<!-- Admin: class statistics (hidden by default; show only to teacher) -->
-<div id="adminReportContainer" class="card" style="display:none;">
-  <h2>Class Statistics</h2>
-  <div id="classReport"></div>
-</div>
-  
-<script>
-  window.GITHUB_COMMIT_CONFIG = {
-    owner: "kingp84",
-    repo: "quiz_app",
-    branch: "main",
-    token: "ghp_XXXXXXXXXXXXXXXXXXXX"
-  };
-</script>
+  <!-- Admin / teacher report (hidden by default) -->
+  <div id="adminReportContainer" class="card hidden" aria-hidden="true">
+    <h2>Class Statistics</h2>
+    <div class="admin-controls">
+      <label for="adminHour">Hour</label>
+      <input id="adminHour" type="text" placeholder="e.g., 2nd hour" />
+      <button id="loadClassBtn">Load Class Data</button>
+      <div class="muted" style="margin-left:auto;">Proficiency threshold: <strong>75%</strong></div>
+    </div>
+    <div id="classReport"></div>
+  </div>
 
-// studentsData is an array of student_responses objects loaded from CSV/JSON for a class hour
-function computeClassStatistics(studentsData, mc_questions) {
-  // Build unit mapping from questions
-  const unitMap = {}; // question -> unit
-  mc_questions.forEach(q => { unitMap[q.question] = q.unit || 'Uncategorized'; });
+  <!-- Client-side config and globals (no real token here) -->
+  <script>
+    // For testing only: if you want to enable direct repo commits from the browser,
+    // set this object in the browser console (do NOT commit a token into the repo).
+    // Example (do not paste a real token into committed HTML):
+    // window.GITHUB_COMMIT_CONFIG = { owner: "kingp84", repo: "quiz_app", branch: "main", token: "ghp_xxx" };
 
-  // Initialize counters per unit
-  const unitCounters = {}; // unit -> { correct: n, total: m }
-  studentsData.forEach(student => {
-    (student.mc || []).forEach(resp => {
-      const qText = resp.question;
-      const unit = unitMap[qText] || 'Uncategorized';
-      unitCounters[unit] = unitCounters[unit] || { correct: 0, total: 0 };
-      unitCounters[unit].total += 1;
-      const correct = String(resp.response || '').toUpperCase() === String(
-        (mc_questions.find(q => q.question === qText) || {}).answer || ''
-      ).toUpperCase();
-      if (correct) unitCounters[unit].correct += 1;
-    });
-  });
+    // Ensure student_responses exists so page wiring never throws
+    window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
+  </script>
 
-  // Compute percentages and proficiency
-  const units = Object.keys(unitCounters).map(unit => {
-    const { correct, total } = unitCounters[unit];
-    const percent = total ? Math.round((correct / total) * 100) : 0;
-    return { unit, correct, total, percent, proficient: percent >= 75 };
-  });
-
-  // Overall class proficiency across all MC items
-  const overall = Object.values(unitCounters).reduce((acc, c) => {
-    acc.correct += c.correct; acc.total += c.total; return acc;
-  }, { correct: 0, total: 0 });
-  const overallPercent = overall.total ? Math.round((overall.correct / overall.total) * 100) : 0;
-  const overallProficient = overallPercent >= 75;
-
-  return { units, overallPercent, overallProficient, studentCount: studentsData.length };
-}
-
-// Render a simple class report into a container element
-function renderClassReport(report, containerId) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  const rows = report.units.map(u =>
-    `<tr>
-      <td>${escapeHtml(u.unit)}</td>
-      <td style="text-align:center">${u.total}</td>
-      <td style="text-align:center">${u.correct}</td>
-      <td style="text-align:center">${u.percent}%</td>
-      <td style="text-align:center">${u.proficient ? 'Yes' : 'No'}</td>
-    </tr>`
-  ).join('');
-  el.innerHTML = `
-    <div><strong>Class size:</strong> ${report.studentCount}</div>
-    <div style="margin-top:8px;"><strong>Overall proficiency:</strong> ${report.overallPercent}% ${report.overallProficient ? '(Proficient)' : ''}</div>
-    <table style="width:100%; margin-top:10px; border-collapse:collapse;">
-      <thead>
-        <tr><th style="text-align:left">Unit</th><th>Total Items</th><th>Correct</th><th>Percent</th><th>Proficient</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
-}
-  <!-- Load quiz logic -->
+  <!-- Load quiz logic (must define startQuiz, runQuiz, downloadCSV, showFinalResults, etc.) -->
   <script src="quiz.js"></script>
 
-  <!-- Wiring: form handler and button hooks (runs after quiz.js loads) -->
+  <!-- Page wiring: form handler, download, teacher save, admin load -->
   <script>
-    // Ensure student_responses exists even if quiz.js has an error
+    // Guard: ensure student_responses exists
     window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
-
-    // Hook download button (downloadCSV defined in quiz.js)
-    document.getElementById('downloadBtn').addEventListener('click', function () {
-      if (typeof downloadCSV === 'function') {
-        downloadCSV();
-      } else {
-        alert('Download not available: quiz script not loaded.');
-      }
-    });
 
     // Form submit starts the quiz (startQuiz defined in quiz.js)
     document.getElementById('studentForm').addEventListener('submit', function (e) {
@@ -187,6 +178,65 @@ function renderClassReport(report, containerId) {
         document.getElementById('quiz').innerHTML = '<p class="muted">Quiz script not loaded or startQuiz not defined.</p>';
       }
     });
+
+    // Download CSV (student)
+    document.getElementById('downloadBtn').addEventListener('click', function () {
+      if (typeof downloadCSV === 'function') {
+        downloadCSV();
+      } else {
+        alert('Download not available: quiz script not loaded.');
+      }
+    });
+
+    // Teacher save: attempts to call appendResponsesToRepoByHour if configured
+    document.getElementById('teacherSaveBtn').addEventListener('click', async function () {
+      if (typeof appendResponsesToRepoByHour === 'function') {
+        try {
+          const res = await appendResponsesToRepoByHour();
+          if (res && res.ok) {
+            alert('Saved to class file successfully (repo).');
+          } else {
+            alert('Save to repo failed. Check console for details.');
+            console.warn(res);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error saving to repo. See console.');
+        }
+      } else {
+        alert('Save to repo not configured on this page.');
+      }
+    });
+
+    // Admin: load class data (teacher)
+    document.getElementById('loadClassBtn').addEventListener('click', async function () {
+      const hour = document.getElementById('adminHour').value.trim();
+      if (!hour) return alert('Enter an hour to load.');
+      // This expects a server or repo endpoint to fetch the per-hour CSV/JSON.
+      // The quiz.js helper parseClassCsvFromRepo(filePath) can be implemented to fetch and parse.
+      if (typeof fetchClassDataForHour === 'function') {
+        try {
+          const studentsData = await fetchClassDataForHour(hour);
+          if (!Array.isArray(studentsData)) {
+            alert('No class data found or parsing failed.');
+            return;
+          }
+          const report = computeClassStatistics(studentsData, window.mc_questions || []);
+          renderClassReport(report, 'classReport');
+          document.getElementById('adminReportContainer').classList.remove('hidden');
+          document.getElementById('adminReportContainer').removeAttribute('aria-hidden');
+        } catch (err) {
+          console.error(err);
+          alert('Failed to load class data. See console.');
+        }
+      } else {
+        alert('Class data fetch not implemented on this page.');
+      }
+    });
+
+    // Optional: show admin controls if teacher (simple toggle for local testing)
+    // To reveal admin controls in the browser console for testing:
+    // document.getElementById('adminReportContainer').classList.remove('hidden');
   </script>
 </body>
 </html>
