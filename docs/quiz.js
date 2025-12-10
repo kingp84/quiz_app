@@ -647,4 +647,3 @@ function startQuiz() {
 window.startQuiz = startQuiz;
 window.runQuiz = runQuiz;
 
-
