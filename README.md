@@ -1,10 +1,12 @@
 # Forensics Quiz App
 
 A free Python-based quiz system for forensic science students.  
-This project contains 48 multiple-choice questions covering Units 1–6 of forensic science, including crime scene methodology, forensic evidence, digital forensics, and behavioral profiling.
+This project contains 48 multiple-choice questions, 2 short-answer questions, and 1 four part short answer bonus covering Units 1–6 of forensic science, including crime scene methodology, forensic evidence, digital forensics, and behavioral profiling.
 
 ## ✨ Features
 - 48 curated multiple-choice questions
+- 2 short answer questions
+- 1 four part short answer bonus question
 - Difficulty levels: Easy, Medium, Hard, Expert
 - Organized by forensic science units
 - Cleaned and duplication-free question set
