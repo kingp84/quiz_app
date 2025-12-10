@@ -607,43 +607,66 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
   return score;
 };
 
-// startQuiz wrapper (global)
-function startQuiz() {
-  if (typeof window.runQuiz !== 'function') {
-    console.error('runQuiz is not defined');
-    return;
-  }
-  if (!Array.isArray(window.mc_questions)) {
-    console.error('mc_questions not defined or not an array');
-    return;
-  }
-  try {
-    window.runQuiz(window.mc_questions, window.short_questions || [], window.bonus_questions || []);
-  } catch (err) {
-    console.error('Error running quiz:', err);
-  }
+// -----------------------------
+// Storage for student responses
+// -----------------------------
+const student_responses = { mc: [], short: [], bonus: [], student_info: {} };
+
+// -----------------------------
+// Multiple-choice questions
+// -----------------------------
+const mc_questions = [
+  { question: "Which amendment governs searches?", choices: ["First", "Fourth"], answer: "Fourth" },
+  // … more questions …
+];
+
+// -----------------------------
+// Short-answer and bonus questions
+// -----------------------------
+const short_questions = [];
+const bonus_questions = [];
+
+// -----------------------------
+// Quiz rendering logic
+// -----------------------------
+function runQuiz(mc_questions, short_questions, bonus_questions) {
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = "";
+
+  mc_questions.forEach((q, idx) => {
+    const qDiv = document.createElement('div');
+    qDiv.className = "question-block";
+
+    const qText = document.createElement('p');
+    qText.textContent = q.question;
+    qDiv.appendChild(qText);
+
+    q.choices.forEach(choice => {
+      const btn = document.createElement('button');
+      btn.textContent = choice;
+      btn.onclick = () => {
+        student_responses.mc[idx] = choice;
+        alert(`You chose: ${choice}`);
+      };
+      qDiv.appendChild(btn);
+    });
+
+    container.appendChild(qDiv);
+  });
 }
 
 // -----------------------------
 // Entry point (called from index.html)
 // -----------------------------
 function startQuiz() {
-  if (typeof window.runQuiz !== 'function') {
+  if (typeof runQuiz !== 'function') {
     console.error('runQuiz is not defined');
     return;
   }
-  if (!Array.isArray(window.mc_questions)) {
-    console.error('mc_questions not defined or not an array');
-    return;
-  }
-  try {
-    window.runQuiz(window.mc_questions, window.short_questions || [], window.bonus_questions || []);
-  } catch (err) {
-    console.error('Error running quiz:', err);
-  }
+  runQuiz(mc_questions, short_questions, bonus_questions);
 }
 
-// expose functions globally so index.html can call them
+// expose functions globally
 window.startQuiz = startQuiz;
 window.runQuiz = runQuiz;
 
