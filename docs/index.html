@@ -135,6 +135,24 @@
 <script>
 
   <script src="./quiz.js?v=2"></script>
+  <script>
+    (async function(){
+      // prepareSession is defined in quiz.js
+      const result = await window.prepareSession(window.mc_questions || []);
+      // startQuiz should accept the shuffled questions or use window.sessionMapping
+      if (typeof window.startQuiz === 'function') {
+        // If your startQuiz expects the shuffled questions, pass them:
+        // window.startQuiz(result.shuffledQuestions);
+        // Otherwise call startQuiz() which can use window.sessionMapping
+        window.startQuiz();
+      } else {
+        console.error('startQuiz not defined after quiz.js loaded');
+      }
+    })();
+  </script>
+
+  </body>
+</html>
 
   <!--
     3) Page wiring: form handler, download, teacher save, admin load (runs after quiz.js loads)

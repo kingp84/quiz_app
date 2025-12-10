@@ -298,6 +298,53 @@ window.bonus_questions = window.bonus_questions || (typeof bonus_questions !== '
 window.startQuiz = window.startQuiz || startQuiz;
 window.runQuiz = window.runQuiz || runQuiz;
 
+// -----------------------------
+// Shuffle utilities and session preparation
+// -----------------------------
+function shuffleArray(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function createSeed() {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function mulberry32(seedHex) {
+  let t = parseInt(seedHex.slice(0,8), 16) >>> 0;
+  return function() { t += 0x6D2B79F5; let r = Math.imul(t ^ t >>> 15, t | 1); r ^= r + Math.imul(r ^ r >>> 7, r | 61); return ((r ^ r >>> 14) >>> 0) / 4294967296; };
+}
+
+async function prepareSession(mcQuestions) {
+  const seed = createSeed();
+  const rng = mulberry32(seed);
+  const shuffledQuestions = shuffleArray(mcQuestions, rng);
+  const mapping = shuffledQuestions.map(q => {
+    const shuffledChoices = shuffleArray(q.choices, rng);
+    const correctIndex = shuffledChoices.findIndex(c => c === q.answer);
+    return {
+      originalQuestion: q.question,
+      shuffledChoices,
+      correctIndex,
+      originalAnswer: q.answer
+    };
+  });
+  // Expose for client use and optional server persistence
+  window.sessionSeed = seed;
+  window.sessionMapping = mapping;
+  // Expose shuffledQuestions for runQuiz if you want to pass them in
+  return { seed, mapping, shuffledQuestions };
+}
+
+// Expose prepareSession globally
+window.prepareSession = window.prepareSession || prepareSession;
+
 // Utility helpers
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, function (m) {
