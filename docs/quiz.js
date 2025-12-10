@@ -297,7 +297,6 @@ window.mc_questions = window.mc_questions || (typeof mc_questions !== 'undefined
 window.short_questions = window.short_questions || (typeof short_questions !== 'undefined' ? short_questions : []);
 window.bonus_questions = window.bonus_questions || (typeof bonus_questions !== 'undefined' ? bonus_questions : []);
 window.startQuiz = window.startQuiz || startQuiz;
-window.runQuiz = window.runQuiz || runQuiz;
 
 // -----------------------------
 // Shuffle utilities and session preparation
@@ -340,7 +339,7 @@ async function prepareSession(mcQuestions) {
   // Expose for client use and optional server persistence
   window.sessionSeed = seed;
   window.sessionMapping = mapping;
-  // Expose shuffledQuestions for runQuiz if you want to pass them in
+  // Expose shuffledQuestions for startQuiz if you want to pass them in
   return { seed, mapping, shuffledQuestions };
 }
 
@@ -561,7 +560,7 @@ function renderBonusCard(qObj, index, remainingAfter) {
 }
 
 // Core quiz runner (global)
-window.runQuiz = window.runQuiz || async function (mc_questions, short_questions, bonus_questions) {
+window.startQuiz = window.startQuiz || async function (mc_questions, short_questions, bonus_questions) {
   let score = 0;
   const mcList = Array.isArray(mc_questions) ? mc_questions : [];
   const shortList = Array.isArray(short_questions) ? short_questions : [];
@@ -676,13 +675,16 @@ function showReview() {
 // -----------------------------
 // Entry point
 // -----------------------------
-function startQuiz(questions = mc_questions) {
-  currentIndex = 0;
-  // overwrite mc_questions if shuffled set is passed in
-  mc_questions = questions;
-  showQuestion();
+// Backwards-compatibility wrapper: if anything still calls runQuiz(), forward to startQuiz()
+function runQuiz(...args) {
+  if (typeof startQuiz === 'function') {
+    return startQuiz(...args);
+  }
+  console.error('startQuiz is not defined; runQuiz() cannot start the quiz.');
 }
-window.startQuiz = startQuiz;
+window.startQuiz = window.startQuiz || startQuiz;
+
+
 
 
 
