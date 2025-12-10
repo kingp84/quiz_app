@@ -609,20 +609,6 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
 const student_responses = { mc: [], short: [], bonus: [], student_info: {} };
 
 // -----------------------------
-// Multiple-choice questions
-// -----------------------------
-const mc_questions = [
-  { question: "Which amendment governs searches?", choices: ["First", "Fourth"], answer: "Fourth" },
-  // … more questions …
-];
-
-// -----------------------------
-// Short-answer and bonus questions
-// -----------------------------
-const short_questions = [];
-const bonus_questions = [];
-
-// -----------------------------
 // Quiz rendering logic
 // -----------------------------
 function runQuiz(mc_questions, short_questions, bonus_questions) {
