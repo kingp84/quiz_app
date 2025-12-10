@@ -68,6 +68,12 @@
     <button id="downloadBtn">Download my responses (CSV)</button>
     <div class="muted">Save the CSV and send it to your teacher if requested.</div>
   </div>
+
+<!-- Admin: class statistics (hidden by default; show only to teacher) -->
+<div id="adminReportContainer" class="card" style="display:none;">
+  <h2>Class Statistics</h2>
+  <div id="classReport"></div>
+</div>
   
 <script>
   window.GITHUB_COMMIT_CONFIG = {
@@ -78,6 +84,68 @@
   };
 </script>
 
+// studentsData is an array of student_responses objects loaded from CSV/JSON for a class hour
+function computeClassStatistics(studentsData, mc_questions) {
+  // Build unit mapping from questions
+  const unitMap = {}; // question -> unit
+  mc_questions.forEach(q => { unitMap[q.question] = q.unit || 'Uncategorized'; });
+
+  // Initialize counters per unit
+  const unitCounters = {}; // unit -> { correct: n, total: m }
+  studentsData.forEach(student => {
+    (student.mc || []).forEach(resp => {
+      const qText = resp.question;
+      const unit = unitMap[qText] || 'Uncategorized';
+      unitCounters[unit] = unitCounters[unit] || { correct: 0, total: 0 };
+      unitCounters[unit].total += 1;
+      const correct = String(resp.response || '').toUpperCase() === String(
+        (mc_questions.find(q => q.question === qText) || {}).answer || ''
+      ).toUpperCase();
+      if (correct) unitCounters[unit].correct += 1;
+    });
+  });
+
+  // Compute percentages and proficiency
+  const units = Object.keys(unitCounters).map(unit => {
+    const { correct, total } = unitCounters[unit];
+    const percent = total ? Math.round((correct / total) * 100) : 0;
+    return { unit, correct, total, percent, proficient: percent >= 75 };
+  });
+
+  // Overall class proficiency across all MC items
+  const overall = Object.values(unitCounters).reduce((acc, c) => {
+    acc.correct += c.correct; acc.total += c.total; return acc;
+  }, { correct: 0, total: 0 });
+  const overallPercent = overall.total ? Math.round((overall.correct / overall.total) * 100) : 0;
+  const overallProficient = overallPercent >= 75;
+
+  return { units, overallPercent, overallProficient, studentCount: studentsData.length };
+}
+
+// Render a simple class report into a container element
+function renderClassReport(report, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const rows = report.units.map(u =>
+    `<tr>
+      <td>${escapeHtml(u.unit)}</td>
+      <td style="text-align:center">${u.total}</td>
+      <td style="text-align:center">${u.correct}</td>
+      <td style="text-align:center">${u.percent}%</td>
+      <td style="text-align:center">${u.proficient ? 'Yes' : 'No'}</td>
+    </tr>`
+  ).join('');
+  el.innerHTML = `
+    <div><strong>Class size:</strong> ${report.studentCount}</div>
+    <div style="margin-top:8px;"><strong>Overall proficiency:</strong> ${report.overallPercent}% ${report.overallProficient ? '(Proficient)' : ''}</div>
+    <table style="width:100%; margin-top:10px; border-collapse:collapse;">
+      <thead>
+        <tr><th style="text-align:left">Unit</th><th>Total Items</th><th>Correct</th><th>Percent</th><th>Proficient</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
   <!-- Load quiz logic -->
   <script src="quiz.js"></script>
 

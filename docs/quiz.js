@@ -708,13 +708,77 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
     }
   }
 
-  // Finalize
-  window.student_responses.score = score;
-  if (typeof showFinalResults === 'function') {
-    showFinalResults(score);
+// Compute per-unit and overall scores for a single student
+function computeStudentUnitStats(mc_questions, short_questions, bonus_questions) {
+  const unitTotals = {}; // { unit: { correct: n, total: m } }
+  // Score MC questions
+  (window.student_responses.mc || []).forEach(resp => {
+    const q = mc_questions.find(x => x.question === resp.question);
+    if (!q) return;
+    const unit = q.unit || 'Uncategorized';
+    unitTotals[unit] = unitTotals[unit] || { correct: 0, total: 0 };
+    unitTotals[unit].total += 1;
+    const correct = String(resp.response || '').toUpperCase() === String(q.answer || '').toUpperCase();
+    if (correct) unitTotals[unit].correct += 1;
+    resp.correct = !!correct;
+  });
+
+  // Short and bonus questions are not auto-scored here; if you have rubrics, add scoring logic
+  // Build result object
+  const units = Object.keys(unitTotals).map(unit => {
+    const { correct, total } = unitTotals[unit];
+    const percent = total ? Math.round((correct / total) * 100) : 0;
+    return { unit, correct, total, percent, proficient: percent >= 75 };
+  });
+
+  // Overall percent across MC only (or include scored short/bonus if available)
+  const overall = units.reduce((acc, u) => {
+    acc.correct += u.correct; acc.total += u.total; return acc;
+  }, { correct: 0, total: 0 });
+  const overallPercent = overall.total ? Math.round((overall.correct / overall.total) * 100) : 0;
+  const overallProficient = overallPercent >= 75;
+
+  return { units, overallPercent, overallProficient };
+}
+
+// Generate student feedback sentences
+function generateStudentFeedback(stats) {
+  const lines = [];
+  if (stats.overallProficient) {
+    lines.push(`Overall performance is proficient at ${stats.overallPercent}%. Great job on the test.`);
   } else {
-    if (quizEl) quizEl.innerHTML = `<p class="muted">Quiz complete. Score: ${score}</p>`;
+    lines.push(`Overall performance is ${stats.overallPercent}%. Work on the units below to reach 75% proficiency.`);
   }
+  stats.units.forEach(u => {
+    if (u.proficient) {
+      lines.push(`${u.unit}: ${u.percent}% — Strength. Keep practicing to maintain mastery.`);
+    } else if (u.total === 0) {
+      lines.push(`${u.unit}: No scored questions in this unit.`);
+    } else {
+      lines.push(`${u.unit}: ${u.percent}% — Needs improvement. Review key concepts and practice more problems.`);
+    }
+  });
+  return lines;
+}
+
+// Render student feedback on results page
+function renderStudentFeedback(stats) {
+  const resultsDiv = document.getElementById('results');
+  if (!resultsDiv) return;
+  const feedback = generateStudentFeedback(stats);
+  const html = [
+    `<div><strong>Overall score:</strong> ${stats.overallPercent}% ${stats.overallProficient ? ' (Proficient)' : ''}</div>`,
+    '<div style="margin-top:10px;"><strong>Unit feedback</strong></div>',
+    '<ul>',
+    ...stats.units.map(u => `<li><strong>${escapeHtml(u.unit)}:</strong> ${u.percent}% ${u.proficient ? '— Proficient' : '— Needs improvement'}</li>`),
+    '</ul>',
+    '<div style="margin-top:10px;"><strong>Personalized feedback</strong></div>',
+    '<ol>',
+    ...feedback.map(line => `<li>${escapeHtml(line)}</li>`),
+    '</ol>'
+  ].join('');
+  resultsDiv.innerHTML = html;
+}
 
   // Attempt to append to repo CSV (if configured)
   try {
