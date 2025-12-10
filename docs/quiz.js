@@ -758,8 +758,6 @@ window.startQuiz = window.startQuiz || async function (mc_questions, short_quest
 // -----------------------------
 // Quiz rendering logic (one question at a time)
 // -----------------------------
-let currentIndex = 0;
-
 function showQuestion() {
   const container = document.getElementById('quizContainer');
   container.innerHTML = "";
