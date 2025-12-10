@@ -1,6 +1,11 @@
 // Forensics First Semester Quiz (converted from Python)
 
 // -----------------------------
+// Storage for student responses
+// -----------------------------
+const student_responses = { mc: [], short: [], bonus: [], student_info: {} };
+
+// -----------------------------
 // Multiple-choice questions
 // -----------------------------
 const mc_questions = [
@@ -602,11 +607,6 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
 
   return score;
 };
-
-// -----------------------------
-// Storage for student responses
-// -----------------------------
-const student_responses = { mc: [], short: [], bonus: [], student_info: {} };
 
 // -----------------------------
 // Quiz rendering logic
