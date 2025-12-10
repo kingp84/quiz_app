@@ -609,46 +609,76 @@ window.runQuiz = window.runQuiz || async function (mc_questions, short_questions
 };
 
 // -----------------------------
-// Quiz rendering logic
+// Quiz rendering logic (one question at a time)
 // -----------------------------
-function runQuiz(mc_questions, short_questions, bonus_questions) {
+let currentIndex = 0;
+
+function showQuestion() {
   const container = document.getElementById('quizContainer');
   container.innerHTML = "";
 
-  mc_questions.forEach((q, idx) => {
-    const qDiv = document.createElement('div');
-    qDiv.className = "question-block";
+  const q = mc_questions[currentIndex];
 
-    const qText = document.createElement('p');
-    qText.textContent = q.question;
-    qDiv.appendChild(qText);
+  // progress indicator
+  const progress = document.createElement('p');
+  progress.textContent = `Question ${currentIndex + 1} of ${mc_questions.length}`;
+  container.appendChild(progress);
 
-    q.choices.forEach(choice => {
-      const btn = document.createElement('button');
-      btn.textContent = choice;
-      btn.onclick = () => {
-        student_responses.mc[idx] = choice;
-        alert(`You chose: ${choice}`);
-      };
-      qDiv.appendChild(btn);
-    });
+  // question text
+  const qText = document.createElement('p');
+  qText.textContent = q.question;
+  container.appendChild(qText);
 
-    container.appendChild(qDiv);
+  // choices
+  q.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.textContent = choice;
+    btn.onclick = () => {
+      student_responses.mc[currentIndex] = choice;
+    };
+    container.appendChild(btn);
   });
+
+  // next button
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = currentIndex < mc_questions.length - 1 ? "Next" : "Review";
+  nextBtn.onclick = () => {
+    if (currentIndex < mc_questions.length - 1) {
+      currentIndex++;
+      showQuestion();
+    } else {
+      showReview();
+    }
+  };
+  container.appendChild(nextBtn);
+}
+
+function showReview() {
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = "<h3>Review Your Answers</h3>";
+
+  mc_questions.forEach((q, idx) => {
+    const p = document.createElement('p');
+    p.textContent = `${q.question} → ${student_responses.mc[idx] || "No answer"}`;
+    container.appendChild(p);
+  });
+
+  const submitBtn = document.createElement('button');
+  submitBtn.textContent = "Submit Quiz";
+  submitBtn.onclick = () => {
+    console.log("Final responses:", student_responses);
+    // add CSV export or save logic here
+  };
+  container.appendChild(submitBtn);
 }
 
 // -----------------------------
-// Entry point (called from index.html)
+// Entry point
 // -----------------------------
 function startQuiz() {
-  if (typeof runQuiz !== 'function') {
-    console.error('runQuiz is not defined');
-    return;
-  }
-  runQuiz(mc_questions, short_questions, bonus_questions);
+  currentIndex = 0;
+  showQuestion();
 }
 
-// expose functions globally
 window.startQuiz = startQuiz;
-window.runQuiz = runQuiz;
 
