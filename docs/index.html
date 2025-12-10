@@ -40,9 +40,19 @@
   </style>
 </head>
 <body>
+
   <div class="banner">
     <h1>Forensics Quiz App</h1>
-    <div class="badge">CRIME SCENE</div>
+ </div>
+
+  <div class="brand-badge">CRIME SCENE</div>
+      .brand-badge {
+      font-weight:700;
+      background: linear-gradient(90deg,#f9d71c,#f39c12);
+      padding:6px 10px;
+      border-radius:6px;
+      color:#111;
+    }
   </div>
 
   <!-- Intro / instructions -->
@@ -112,11 +122,25 @@
     // Ensure student_responses exists so page wiring never throws
     window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
   </script>
+<script>
+(function(){
+  const quizEl = document.getElementById('quiz');
+  if(!quizEl) return console.error('No #quiz element found');
+  quizEl.innerHTML = '';
+  const card = document.createElement('div');
+  card.innerHTML = '<h3>Test MC: Which is correct?</h3>';
+  ['A. One','B. Two','C. Three','D. Four'].forEach(t=>{
+    const b = document.createElement('button');
+    b.textContent = t;
+    b.style.display = 'block';
+    b.style.margin = '8px 0';
+    b.onclick = ()=>console.log('Clicked', t);
+    card.appendChild(b);
+  });
+  quizEl.appendChild(card);
+})();
+ <script>
 
-  <!--
-    2) Main quiz logic file (quiz.js) — must define question arrays and the functions used below.
-       Place your question arrays at the top of quiz.js, then append the functions block (provided separately).
-  -->
   <script src="quiz.js"></script>
 
   <!--
