@@ -680,5 +680,4 @@ function startQuiz() {
   showQuestion();
 }
 
-window.startQuiz = startQuiz;
 
