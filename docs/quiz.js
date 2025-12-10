@@ -336,6 +336,7 @@ async function prepareSession(mcQuestions) {
       originalAnswer: q.answer
     };
   });
+
   // Expose for client use and optional server persistence
   window.sessionSeed = seed;
   window.sessionMapping = mapping;
@@ -617,20 +618,20 @@ function showQuestion() {
   const container = document.getElementById('quizContainer');
   container.innerHTML = "";
 
-  const q = mc_questions[currentIndex];
+  const q = window.sessionMapping[currentIndex];
 
   // progress indicator
   const progress = document.createElement('p');
-  progress.textContent = `Question ${currentIndex + 1} of ${mc_questions.length}`;
+  progress.textContent = `Question ${currentIndex + 1} of ${window.sessionMapping.length}`;
   container.appendChild(progress);
 
   // question text
   const qText = document.createElement('p');
-  qText.textContent = q.question;
+  qText.textContent = q.originalQuestion;
   container.appendChild(qText);
 
-  // choices
-  q.choices.forEach(choice => {
+  // shuffled choices
+  q.shuffledChoices.forEach(choice => {
     const btn = document.createElement('button');
     btn.textContent = choice;
     btn.onclick = () => {
@@ -641,9 +642,9 @@ function showQuestion() {
 
   // next button
   const nextBtn = document.createElement('button');
-  nextBtn.textContent = currentIndex < mc_questions.length - 1 ? "Next" : "Review";
+  nextBtn.textContent = currentIndex < window.sessionMapping.length - 1 ? "Next" : "Review";
   nextBtn.onclick = () => {
-    if (currentIndex < mc_questions.length - 1) {
+    if (currentIndex < window.sessionMapping.length - 1) {
       currentIndex++;
       showQuestion();
     } else {
@@ -657,9 +658,9 @@ function showReview() {
   const container = document.getElementById('quizContainer');
   container.innerHTML = "<h3>Review Your Answers</h3>";
 
-  mc_questions.forEach((q, idx) => {
+  window.sessionMapping.forEach((q, idx) => {
     const p = document.createElement('p');
-    p.textContent = `${q.question} → ${student_responses.mc[idx] || "No answer"}`;
+    p.textContent = `${q.originalQuestion} → ${student_responses.mc[idx] || "No answer"}`;
     container.appendChild(p);
   });
 
@@ -675,9 +676,14 @@ function showReview() {
 // -----------------------------
 // Entry point
 // -----------------------------
-function startQuiz() {
+function startQuiz(questions = mc_questions) {
   currentIndex = 0;
+  // overwrite mc_questions if shuffled set is passed in
+  mc_questions = questions;
   showQuestion();
 }
+window.startQuiz = startQuiz;
+
+
 
 
