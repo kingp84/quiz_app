@@ -847,7 +847,6 @@ function startQuiz(questions = null) {
   } else {
     console.error('showQuestion not defined; cannot render quiz.');
   }
-}
 
 // Ensure global exports
 window.prepareSession = window.prepareSession || prepareSession;
