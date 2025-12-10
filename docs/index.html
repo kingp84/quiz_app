@@ -19,57 +19,19 @@
       background: var(--page-bg);
       color: #222;
     }
-    .banner {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      background:#111;
-      color:#fff;
-      padding:14px 18px;
-      border-radius:10px;
-      margin-bottom:18px;
-    }
+    .banner { display:flex; align-items:center; justify-content:space-between; background:#111; color:#fff; padding:14px 18px; border-radius:10px; margin-bottom:18px; }
     .banner h1 { margin:0; font-size:1.3rem; }
-    .card {
-      background:var(--card-bg);
-      border-radius:10px;
-      padding:16px;
-      box-shadow:0 6px 18px rgba(0,0,0,0.06);
-      margin-bottom:16px;
-      border:1px solid #ddd;
-    }
+    .card { background:var(--card-bg); border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); margin-bottom:16px; border:1px solid #ddd; }
     label { font-weight:600; display:block; margin-top:10px; }
-    input[type="text"], textarea {
-      width:100%;
-      padding:10px;
-      border-radius:8px;
-      border:1px solid #bbb;
-      margin-top:6px;
-      font-size:1rem;
-      box-sizing:border-box;
-    }
-    button {
-      margin-top:14px;
-      padding:10px 16px;
-      background:var(--primary);
-      color:#fff;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:600;
-    }
+    input[type="text"], textarea { width:100%; padding:10px; border-radius:8px; border:1px solid #bbb; margin-top:6px; font-size:1rem; box-sizing:border-box; }
+    button { margin-top:14px; padding:10px 16px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; }
     button:hover { background:var(--primary-dark); }
     .muted { color:var(--muted); font-size:0.95rem; margin-top:8px; }
     #intro, #quizPage, #resultsPage { display:none; }
     #intro { display:block; }
     #quiz { margin-top:12px; }
     .progress { margin-top:10px; color:var(--muted); }
-    .badge {
-      background:#f0f0f0;
-      padding:6px 10px;
-      border-radius:8px;
-      font-weight:600;
-    }
+    .badge { background:#f0f0f0; padding:6px 10px; border-radius:8px; font-weight:600; }
     table { width:100%; border-collapse:collapse; margin-top:10px; }
     th, td { border:1px solid #e6e6e6; padding:8px; text-align:left; }
     th { background:#fafafa; }
@@ -135,21 +97,31 @@
     <div id="classReport"></div>
   </div>
 
-  <!-- Client-side config and globals (no real token here) -->
+  <!--
+    SCRIPT PLACEMENTS (every place that should have <script>)
+
+    1) Small client-side config and globals (before loading quiz.js)
+       - Purpose: set optional GITHUB_COMMIT_CONFIG for testing and ensure student_responses exists.
+  -->
   <script>
-    // For testing only: if you want to enable direct repo commits from the browser,
-    // set this object in the browser console (do NOT commit a token into the repo).
-    // Example (do not paste a real token into committed HTML):
+    // For testing only: set this in the browser console if you want to enable direct repo commits.
+    // Do NOT commit a real token into the repository.
+    // Example (run in console, not in committed HTML):
     // window.GITHUB_COMMIT_CONFIG = { owner: "kingp84", repo: "quiz_app", branch: "main", token: "ghp_xxx" };
 
     // Ensure student_responses exists so page wiring never throws
     window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
   </script>
 
-  <!-- Load quiz logic (must define startQuiz, runQuiz, downloadCSV, showFinalResults, etc.) -->
+  <!--
+    2) Main quiz logic file (quiz.js) — must define question arrays and the functions used below.
+       Place your question arrays at the top of quiz.js, then append the functions block (provided separately).
+  -->
   <script src="quiz.js"></script>
 
-  <!-- Page wiring: form handler, download, teacher save, admin load -->
+  <!--
+    3) Page wiring: form handler, download, teacher save, admin load (runs after quiz.js loads)
+  -->
   <script>
     // Guard: ensure student_responses exists
     window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
@@ -212,8 +184,6 @@
     document.getElementById('loadClassBtn').addEventListener('click', async function () {
       const hour = document.getElementById('adminHour').value.trim();
       if (!hour) return alert('Enter an hour to load.');
-      // This expects a server or repo endpoint to fetch the per-hour CSV/JSON.
-      // The quiz.js helper parseClassCsvFromRepo(filePath) can be implemented to fetch and parse.
       if (typeof fetchClassDataForHour === 'function') {
         try {
           const studentsData = await fetchClassDataForHour(hour);
@@ -234,8 +204,7 @@
       }
     });
 
-    // Optional: show admin controls if teacher (simple toggle for local testing)
-    // To reveal admin controls in the browser console for testing:
+    // Optional: reveal admin controls for local testing:
     // document.getElementById('adminReportContainer').classList.remove('hidden');
   </script>
 </body>

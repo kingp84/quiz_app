@@ -298,99 +298,30 @@ const bonus_questions = [
         answer: "Profiling is a tool, useful but must be combined with forensic evidence."
     }
 ];
+
 // -----------------------------
 // Quiz Functions
 // -----------------------------
-function welcomeScreen() {
-  const name = prompt("Please enter your first and last name:");
-  const hour = prompt("Please enter your class hour (e.g., 1st hour, 7th hour):");
-  student_responses.student_info = { name, hour };
 
-  alert(`--- Test Instructions ---
-1. Read each multiple-choice question carefully.
-2. Select the best answer from the options provided.
-3. Answer short-answer questions in complete sentences.
-4. The bonus questions can earn extra points but will not subtract points.
-5. Do your best and good luck!`);
-}
-
-function askMC(q) {
-  const options = [...q.options].sort(() => Math.random() - 0.5);
-  let choiceText = `${q.question}\n`;
-  options.forEach((opt, i) => { choiceText += `${i+1}. ${opt}\n`; });
-
-  const startTime = new Date().toLocaleString();
-  let choice;
-  while (true) {
-    choice = prompt(choiceText + "\nChoose the correct option (1-4):");
-    if (choice && !isNaN(choice) && choice >= 1 && choice <= options.length) break;
-    alert("Invalid input. Please enter a number between 1 and 4.");
-  }
-  const endTime = new Date().toLocaleString();
-
-  const selected = options[choice-1];
-  student_responses.mc.push({ question: q.question, response: selected, start_time: startTime, end_time: endTime });
-
-  if (selected.toLowerCase() === q.answer.toLowerCase()) {
-    alert("✅ Correct! +4 points");
-    return 4;
-  } else {
-    alert(`❌ Incorrect. Correct answer: ${q.answer}`);
-    return 0;
-  }
-}
-
-function askShort(short_questions) {
-  short_questions.forEach(q => {
-    let response;
-    while (!response) {
-      response = prompt(q.question);
-      if (!response) alert("Response cannot be empty. Please type your answer.");
-    }
-    student_responses.short.push({ question: q.question, response, start_time: new Date().toLocaleString(), end_time: new Date().toLocaleString() });
-  });
-}
-
-function askBonus(bonus_questions) {
-  bonus_questions.forEach(q => {
-    let response;
-    while (!response) {
-      response = prompt(q.question);
-      if (!response) alert("Response cannot be empty. Please type your answer.");
-    }
-    student_responses.bonus.push({ question: q.question, response, start_time: new Date().toLocaleString(), end_time: new Date().toLocaleString() });
-  });
-}
-
-// -----------------------------
-// Configuration for GitHub commit (OPTIONAL)
-// -----------------------------
-// WARNING: Committing directly from client-side exposes a token to users.
-// Recommended: implement a server endpoint that accepts the CSV and commits it securely.
-// If you still want to commit directly from the browser for testing, set:
-//   window.GITHUB_COMMIT_CONFIG = {
-//     owner: "kingp84",           // your GitHub username or org
-//     repo: "quiz_app",           // repository name
-//     branch: "main",            // branch to commit to
-//     token: "ghp_XXXXXXXXXXXXXXXXXXXX" // PERSONAL ACCESS TOKEN (scoped to repo)
-//   };
-// Do NOT embed a long-lived token in production client code.
-window.GITHUB_COMMIT_CONFIG = window.GITHUB_COMMIT_CONFIG || null;
-
-// -----------------------------
 // Ensure global storage exists
-// -----------------------------
 window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
 
-// -----------------------------
-// Utility: CSV / Base64 helpers
-// -----------------------------
-function escapeCsvCell(s) {
-  const str = String(s == null ? "" : s);
-  return `"${str.replace(/"/g, '""')}"`;
+// Expose question arrays to window if not already
+window.mc_questions = window.mc_questions || (typeof mc_questions !== 'undefined' ? mc_questions : []);
+window.short_questions = window.short_questions || (typeof short_questions !== 'undefined' ? short_questions : []);
+window.bonus_questions = window.bonus_questions || (typeof bonus_questions !== 'undefined' ? bonus_questions : []);
+
+// Utility helpers
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, function (m) {
+    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m];
+  });
+}
+function escapeCsv(s) {
+  return String(s == null ? '' : s).replace(/"/g, '""');
 }
 function csvRow(cells) {
-  return cells.map(escapeCsvCell).join(",");
+  return cells.map(c => `"${escapeCsv(c)}"`).join(',');
 }
 function utf8ToB64(str) {
   return btoa(unescape(encodeURIComponent(str)));
@@ -398,433 +329,265 @@ function utf8ToB64(str) {
 function b64ToUtf8(b64) {
   return decodeURIComponent(escape(atob(b64)));
 }
-
-// -----------------------------
-// Show correct answers (logs for teacher)
-// -----------------------------
-function showAnswers(mc_questions, short_questions, bonus_questions) {
-  let out = '--- Correct Answers ---\n';
-  (mc_questions || []).forEach((q, i) => {
-    out += `MC Q${i+1}: ${q.question}\nCorrect: ${q.answer}\n\n`;
-  });
-  (short_questions || []).forEach((q, i) => {
-    out += `Short Q${i+1}: ${q.question}\nSuggested: ${q.answer || 'N/A'}\n\n`;
-  });
-  (bonus_questions || []).forEach((q, i) => {
-    out += `Bonus Q${i+1}: ${q.question}\nSuggested: ${q.answer || 'N/A'}\n\n`;
-  });
-  console.log(out);
+function sanitizeFilename(s) {
+  return String(s || 'unknown').replace(/[\/\\#%&{}<>*? $!'":@+`|=]/g, '_');
 }
 
-// -----------------------------
-// Render final results on the results page
-// -----------------------------
-function showFinalResults(score) {
-  window.student_responses.score = score;
-  const quizPage = document.getElementById('quizPage');
-  const resultsPage = document.getElementById('resultsPage');
-  if (quizPage) quizPage.style.display = 'none';
-  if (resultsPage) resultsPage.style.display = 'block';
-  const info = window.student_responses.student_info || {};
-  const resultsDiv = document.getElementById('results');
-  if (resultsDiv) {
-    resultsDiv.innerHTML =
-      `<div><strong>Name:</strong> ${escapeHtml(info.name || '')}</div>
-       <div><strong>Hour:</strong> ${escapeHtml(info.hour || '')}</div>
-       <div><strong>Final score:</strong> ${score} points</div>`;
-  }
+// Render helpers (in-page, no popups)
+function createBadge(text) {
+  const d = document.createElement('div');
+  d.className = 'badge';
+  d.textContent = text;
+  return d;
 }
 
-// -----------------------------
-// Append responses to a single CSV in the repo (per-hour file)
-// -----------------------------
-// This function uses the GitHub Contents API to fetch the existing CSV (if any),
-// append a new row, and PUT the updated file back to the repo.
-// NOTE: Direct client commits require a token and are insecure in production.
-async function appendResponsesToRepoByHour() {
-  const cfg = window.GITHUB_COMMIT_CONFIG;
-  if (!cfg || !cfg.token) {
-    console.warn('GitHub commit config not provided; skipping repo append.');
-    return { ok: false, reason: 'no-config' };
-  }
+// Render a multiple-choice question card and return a Promise that resolves with points earned
+function renderMCQuestionCard(qObj, index, total) {
+  return new Promise(resolve => {
+    const quizEl = document.getElementById('quiz');
+    const progressEl = document.getElementById('progress');
+    if (!quizEl) return resolve(0);
 
-  const owner = cfg.owner;
-  const repo = cfg.repo;
-  const branch = cfg.branch || 'main';
-  const token = cfg.token;
-  const hour = (window.student_responses.student_info && window.student_responses.student_info.hour) || 'unknown_hour';
-  const filePath = `student_responses/${sanitizeFilename(hour)}.csv`;
-  const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}`;
+    quizEl.innerHTML = '';
 
-  // Build CSV row for this student
-  const info = window.student_responses.student_info || {};
-  const mcCells = (window.student_responses.mc || []).map(m => `${m.question} -> ${m.response}`).join(" ; ");
-  const shortCells = (window.student_responses.short || []).map(s => `${s.question} -> ${s.response}`).join(" ; ");
-  const bonusCells = (window.student_responses.bonus || []).map(b => `${b.question} -> ${b.response}`).join(" ; ");
-  const row = [
-    info.name || '',
-    info.hour || '',
-    window.student_responses.score || 0,
-    mcCells,
-    shortCells,
-    bonusCells
-  ];
-  const newRow = csvRow(row) + "\n";
+    const card = document.createElement('div');
+    card.style.padding = '12px';
+    card.style.border = '1px solid #ddd';
+    card.style.borderRadius = '8px';
 
-  // Fetch existing file (if exists)
-  let existingContent = "";
-  let sha = null;
-  try {
-    const res = await fetch(`${apiBase}?ref=${encodeURIComponent(branch)}`, {
-      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+    // Header with remaining badge
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+
+    const qTitle = document.createElement('h3');
+    qTitle.style.margin = '0';
+    qTitle.textContent = `Q${index + 1}: ${qObj.question}`;
+
+    const remainingCount = Math.max(0, total - (index + 1));
+    const remainingBadge = document.createElement('div');
+    remainingBadge.style.background = '#f0f0f0';
+    remainingBadge.style.padding = '6px 10px';
+    remainingBadge.style.borderRadius = '8px';
+    remainingBadge.style.fontWeight = '600';
+    remainingBadge.textContent = `${remainingCount} remaining`;
+
+    header.appendChild(qTitle);
+    header.appendChild(remainingBadge);
+    card.appendChild(header);
+
+    // Choices as buttons
+    (qObj.choices || []).forEach(choiceText => {
+      const btn = document.createElement('button');
+      btn.textContent = choiceText;
+      btn.style.display = 'block';
+      btn.style.margin = '8px 0';
+      btn.onclick = () => {
+        const now = new Date().toISOString();
+        const selected = (choiceText && choiceText.charAt(0)) || '';
+        const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
+        const points = correct ? 4 : 0;
+
+        // Record response
+        window.student_responses.mc.push({
+          question: qObj.question,
+          response: selected,
+          start_time: now,
+          end_time: now,
+          correct: !!correct,
+          unit: qObj.unit || 'Uncategorized'
+        });
+
+        // Update progress text
+        if (progressEl) progressEl.textContent = `${remainingCount} question${remainingCount === 1 ? '' : 's'} remaining`;
+
+        resolve(points);
+      };
+      card.appendChild(btn);
     });
-    if (res.status === 200) {
-      const json = await res.json();
-      sha = json.sha;
-      existingContent = b64ToUtf8(json.content.replace(/\n/g, ""));
-    } else if (res.status === 404) {
-      existingContent = ""; // file doesn't exist yet
-    } else {
-      const txt = await res.text();
-      console.error('GitHub fetch error', res.status, txt);
-      return { ok: false, reason: 'fetch-failed', status: res.status, text: txt };
-    }
-  } catch (err) {
-    console.error('Error fetching existing CSV:', err);
-    return { ok: false, reason: 'fetch-exception', error: String(err) };
-  }
 
-  // If file empty, add header row first
-  const header = csvRow(['Name','Hour','Score','MC Responses','Short Responses','Bonus Responses']) + "\n";
-  const updatedContent = (existingContent.trim() === "" ? header : existingContent) + newRow;
-  const encoded = utf8ToB64(updatedContent);
-
-  // Commit (create or update)
-  const commitMessage = `Add response for ${info.name || 'unknown'} (${hour})`;
-  const body = {
-    message: commitMessage,
-    content: encoded,
-    branch: branch
-  };
-  if (sha) body.sha = sha;
-
-  try {
-    const putRes = await fetch(apiBase, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    const putJson = await putRes.json();
-    if (putRes.ok) {
-      console.log('CSV updated in repo:', filePath);
-      return { ok: true, result: putJson };
-    } else {
-      console.error('GitHub commit failed', putRes.status, putJson);
-      return { ok: false, reason: 'commit-failed', status: putRes.status, json: putJson };
-    }
-  } catch (err) {
-    console.error('Error committing CSV to repo:', err);
-    return { ok: false, reason: 'commit-exception', error: String(err) };
-  }
+    quizEl.appendChild(card);
+    if (progressEl) progressEl.textContent = `${total - index} question${total - index === 1 ? '' : 's'} remaining`;
+  });
 }
 
-// -----------------------------
-// Core quiz runner (global) with "questions remaining" updates
-// -----------------------------
+// Render a short-answer card and wait for user to save
+function renderShortAnswerCard(qObj, index, remainingAfter) {
+  return new Promise(resolve => {
+    const quizEl = document.getElementById('quiz');
+    if (!quizEl) return resolve();
+    quizEl.innerHTML = '';
+
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '12px';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+
+    const label = document.createElement('div');
+    label.innerHTML = `<strong>Short ${index + 1}:</strong> ${escapeHtml(qObj.question)}`;
+
+    const remainingBadge = document.createElement('div');
+    remainingBadge.style.background = '#f0f0f0';
+    remainingBadge.style.padding = '6px 10px';
+    remainingBadge.style.borderRadius = '8px';
+    remainingBadge.style.fontWeight = '600';
+    remainingBadge.textContent = `${remainingAfter} remaining`;
+
+    header.appendChild(label);
+    header.appendChild(remainingBadge);
+    wrapper.appendChild(header);
+
+    const ta = document.createElement('textarea');
+    ta.rows = 4;
+    ta.style.width = '100%';
+    ta.style.marginTop = '6px';
+    wrapper.appendChild(ta);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Save answer and continue';
+    nextBtn.style.display = 'block';
+    nextBtn.style.marginTop = '8px';
+    wrapper.appendChild(nextBtn);
+
+    nextBtn.onclick = () => {
+      const now = new Date().toISOString();
+      window.student_responses.short.push({
+        question: qObj.question,
+        response: ta.value || '',
+        start_time: now,
+        end_time: now,
+        unit: qObj.unit || 'Uncategorized'
+      });
+      resolve();
+    };
+
+    quizEl.appendChild(wrapper);
+  });
+}
+
+// Render a bonus-answer card and wait for user to save
+function renderBonusCard(qObj, index, remainingAfter) {
+  return new Promise(resolve => {
+    const quizEl = document.getElementById('quiz');
+    if (!quizEl) return resolve();
+    quizEl.innerHTML = '';
+
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '12px';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+
+    const label = document.createElement('div');
+    label.innerHTML = `<strong>Bonus ${index + 1}:</strong> ${qObj.question}`;
+
+    const remainingBadge = document.createElement('div');
+    remainingBadge.style.background = '#f0f0f0';
+    remainingBadge.style.padding = '6px 10px';
+    remainingBadge.style.borderRadius = '8px';
+    remainingBadge.style.fontWeight = '600';
+    remainingBadge.textContent = `${remainingAfter} remaining`;
+
+    header.appendChild(label);
+    header.appendChild(remainingBadge);
+    wrapper.appendChild(header);
+
+    const ta = document.createElement('textarea');
+    ta.rows = 4;
+    ta.style.width = '100%';
+    ta.style.marginTop = '6px';
+    wrapper.appendChild(ta);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Save bonus answer and continue';
+    nextBtn.style.display = 'block';
+    nextBtn.style.marginTop = '8px';
+    wrapper.appendChild(nextBtn);
+
+    nextBtn.onclick = () => {
+      const now = new Date().toISOString();
+      window.student_responses.bonus.push({
+        question: qObj.question,
+        response: ta.value || '',
+        start_time: now,
+        end_time: now,
+        unit: qObj.unit || 'Uncategorized'
+      });
+      resolve();
+    };
+
+    quizEl.appendChild(wrapper);
+  });
+}
+
+// Core quiz runner (global)
 window.runQuiz = window.runQuiz || async function (mc_questions, short_questions, bonus_questions) {
   let score = 0;
-  const progressEl = document.getElementById('progress');
-  const quizEl = document.getElementById('quiz');
-
-  function updateRemaining(total, asked) {
-    const remaining = Math.max(0, total - asked);
-    if (progressEl) progressEl.textContent = `${remaining} question${remaining === 1 ? '' : 's'} remaining`;
-  }
-
-  // Render MC question and show remaining count inside the question card
-  function renderMC(qObj, index, total) {
-    return new Promise(resolve => {
-      if (!quizEl) return resolve(0);
-      quizEl.innerHTML = '';
-      const card = document.createElement('div');
-      card.style.padding = '12px';
-      card.style.border = '1px solid #ddd';
-      card.style.borderRadius = '8px';
-
-      const header = document.createElement('div');
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      header.style.alignItems = 'center';
-      const qTitle = document.createElement('h3');
-      qTitle.style.margin = '0';
-      qTitle.textContent = `Q${index+1}: ${qObj.question}`;
-      const remainingBadge = document.createElement('div');
-      remainingBadge.style.background = '#f0f0f0';
-      remainingBadge.style.padding = '6px 10px';
-      remainingBadge.style.borderRadius = '8px';
-      remainingBadge.style.fontWeight = '600';
-      const remainingCount = Math.max(0, total - (index + 1));
-      remainingBadge.textContent = `${remainingCount} remaining`;
-      header.appendChild(qTitle);
-      header.appendChild(remainingBadge);
-      card.appendChild(header);
-
-      (qObj.choices || []).forEach(choiceText => {
-        const btn = document.createElement('button');
-        btn.textContent = choiceText;
-        btn.style.display = 'block';
-        btn.style.margin = '8px 0';
-        btn.onclick = () => {
-          const now = new Date().toISOString();
-          window.student_responses.mc.push({
-            question: qObj.question,
-            response: (choiceText && choiceText.charAt(0)) || '',
-            start_time: now,
-            end_time: now
-          });
-          const selected = (choiceText && choiceText.charAt(0)) || '';
-          const points = (selected.toUpperCase() === String(qObj.answer).toUpperCase()) ? 4 : 0;
-          resolve(points);
-        };
-        card.appendChild(btn);
-      });
-
-      quizEl.appendChild(card);
-      updateRemaining(total, index + 1);
-    });
-  }
-
-  // Run MC questions sequentially
   const mcList = Array.isArray(mc_questions) ? mc_questions : [];
+  const shortList = Array.isArray(short_questions) ? short_questions : [];
+  const bonusList = Array.isArray(bonus_questions) ? bonus_questions : [];
+
+  // MC questions
   for (let i = 0; i < mcList.length; i++) {
-    const q = mcList[i];
-    const pts = await renderMC(q, i, mcList.length);
+    const pts = await renderMCQuestionCard(mcList[i], i, mcList.length);
     score += pts;
   }
 
-  // Short-answer: show remaining count and a textarea per question
-  if (Array.isArray(short_questions) && short_questions.length) {
-    for (let i = 0; i < short_questions.length; i++) {
-      const q = short_questions[i];
-      quizEl.innerHTML = '';
-      const wrapper = document.createElement('div');
-      wrapper.style.marginBottom = '12px';
-      const header = document.createElement('div');
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      const label = document.createElement('div');
-      label.innerHTML = `<strong>Short ${i+1}:</strong> ${q.question}`;
-      const remainingBadge = document.createElement('div');
-      const remainingCount = Math.max(0, (short_questions.length - (i + 1)) + (bonus_questions ? bonus_questions.length : 0));
-      remainingBadge.textContent = `${remainingCount} remaining`;
-      remainingBadge.style.background = '#f0f0f0';
-      remainingBadge.style.padding = '6px 10px';
-      remainingBadge.style.borderRadius = '8px';
-      header.appendChild(label);
-      header.appendChild(remainingBadge);
-      wrapper.appendChild(header);
-
-      const ta = document.createElement('textarea');
-      ta.rows = 3;
-      ta.style.width = '100%';
-      ta.style.marginTop = '6px';
-      wrapper.appendChild(ta);
-
-      const nextBtn = document.createElement('button');
-      nextBtn.textContent = 'Save answer and continue';
-      nextBtn.style.display = 'block';
-      nextBtn.style.marginTop = '8px';
-      wrapper.appendChild(nextBtn);
-
-      quizEl.appendChild(wrapper);
-
-      await new Promise(resolve => {
-        nextBtn.onclick = () => {
-          const now = new Date().toISOString();
-          window.student_responses.short.push({
-            question: q.question,
-            response: ta.value || '',
-            start_time: now,
-            end_time: now
-          });
-          resolve();
-        };
-      });
-    }
+  // Short answers
+  for (let i = 0; i < shortList.length; i++) {
+    const remainingAfter = Math.max(0, (shortList.length - (i + 1)) + bonusList.length);
+    await renderShortAnswerCard(shortList[i], i, remainingAfter);
   }
 
-  // Bonus questions: similar UI and remaining count
-  if (Array.isArray(bonus_questions) && bonus_questions.length) {
-    for (let i = 0; i < bonus_questions.length; i++) {
-      const q = bonus_questions[i];
-      quizEl.innerHTML = '';
-      const wrapper = document.createElement('div');
-      wrapper.style.marginBottom = '12px';
-      const header = document.createElement('div');
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      const label = document.createElement('div');
-      label.innerHTML = `<strong>Bonus ${i+1}:</strong> ${q.question}`;
-      const remainingBadge = document.createElement('div');
-      const remainingCount = Math.max(0, bonus_questions.length - (i + 1));
-      remainingBadge.textContent = `${remainingCount} remaining`;
-      remainingBadge.style.background = '#f0f0f0';
-      remainingBadge.style.padding = '6px 10px';
-      remainingBadge.style.borderRadius = '8px';
-      header.appendChild(label);
-      header.appendChild(remainingBadge);
-      wrapper.appendChild(header);
-
-      const ta = document.createElement('textarea');
-      ta.rows = 3;
-      ta.style.width = '100%';
-      ta.style.marginTop = '6px';
-      wrapper.appendChild(ta);
-
-      const nextBtn = document.createElement('button');
-      nextBtn.textContent = 'Save bonus answer and continue';
-      nextBtn.style.display = 'block';
-      nextBtn.style.marginTop = '8px';
-      wrapper.appendChild(nextBtn);
-
-      quizEl.appendChild(wrapper);
-
-      await new Promise(resolve => {
-        nextBtn.onclick = () => {
-          const now = new Date().toISOString();
-          window.student_responses.bonus.push({
-            question: q.question,
-            response: ta.value || '',
-            start_time: now,
-            end_time: now
-          });
-          resolve();
-        };
-      });
-    }
+  // Bonus questions
+  for (let i = 0; i < bonusList.length; i++) {
+    const remainingAfter = Math.max(0, bonusList.length - (i + 1));
+    await renderBonusCard(bonusList[i], i, remainingAfter);
   }
 
-// Compute per-unit and overall scores for a single student
-function computeStudentUnitStats(mc_questions, short_questions, bonus_questions) {
-  const unitTotals = {}; // { unit: { correct: n, total: m } }
-  // Score MC questions
-  (window.student_responses.mc || []).forEach(resp => {
-    const q = mc_questions.find(x => x.question === resp.question);
-    if (!q) return;
-    const unit = q.unit || 'Uncategorized';
-    unitTotals[unit] = unitTotals[unit] || { correct: 0, total: 0 };
-    unitTotals[unit].total += 1;
-    const correct = String(resp.response || '').toUpperCase() === String(q.answer || '').toUpperCase();
-    if (correct) unitTotals[unit].correct += 1;
-    resp.correct = !!correct;
-  });
+  // Finalize
+  window.student_responses.score = score;
 
-  // Short and bonus questions are not auto-scored here; if you have rubrics, add scoring logic
-  // Build result object
-  const units = Object.keys(unitTotals).map(unit => {
-    const { correct, total } = unitTotals[unit];
-    const percent = total ? Math.round((correct / total) * 100) : 0;
-    return { unit, correct, total, percent, proficient: percent >= 75 };
-  });
+  // Compute student unit stats and render feedback
+  const stats = computeStudentUnitStats(mc_questions, short_questions, bonus_questions);
+  renderStudentFeedback(stats);
 
-  // Overall percent across MC only (or include scored short/bonus if available)
-  const overall = units.reduce((acc, u) => {
-    acc.correct += u.correct; acc.total += u.total; return acc;
-  }, { correct: 0, total: 0 });
-  const overallPercent = overall.total ? Math.round((overall.correct / overall.total) * 100) : 0;
-  const overallProficient = overallPercent >= 75;
-
-  return { units, overallPercent, overallProficient };
-}
-
-// Generate student feedback sentences
-function generateStudentFeedback(stats) {
-  const lines = [];
-  if (stats.overallProficient) {
-    lines.push(`Overall performance is proficient at ${stats.overallPercent}%. Great job on the test.`);
-  } else {
-    lines.push(`Overall performance is ${stats.overallPercent}%. Work on the units below to reach 75% proficiency.`);
-  }
-  stats.units.forEach(u => {
-    if (u.proficient) {
-      lines.push(`${u.unit}: ${u.percent}% — Strength. Keep practicing to maintain mastery.`);
-    } else if (u.total === 0) {
-      lines.push(`${u.unit}: No scored questions in this unit.`);
-    } else {
-      lines.push(`${u.unit}: ${u.percent}% — Needs improvement. Review key concepts and practice more problems.`);
-    }
-  });
-  return lines;
-}
-
-// Render student feedback on results page
-function renderStudentFeedback(stats) {
-  const resultsDiv = document.getElementById('results');
-  if (!resultsDiv) return;
-  const feedback = generateStudentFeedback(stats);
-  const html = [
-    `<div><strong>Overall score:</strong> ${stats.overallPercent}% ${stats.overallProficient ? ' (Proficient)' : ''}</div>`,
-    '<div style="margin-top:10px;"><strong>Unit feedback</strong></div>',
-    '<ul>',
-    ...stats.units.map(u => `<li><strong>${escapeHtml(u.unit)}:</strong> ${u.percent}% ${u.proficient ? '— Proficient' : '— Needs improvement'}</li>`),
-    '</ul>',
-    '<div style="margin-top:10px;"><strong>Personalized feedback</strong></div>',
-    '<ol>',
-    ...feedback.map(line => `<li>${escapeHtml(line)}</li>`),
-    '</ol>'
-  ].join('');
-  resultsDiv.innerHTML = html;
-}
-
-  // Attempt to append to repo CSV (if configured)
-  try {
-    const appendResult = await appendResponsesToRepoByHour();
-    if (appendResult && appendResult.ok) {
-      console.log('Responses appended to repo successfully.');
-    } else {
-      console.warn('Responses not appended to repo:', appendResult);
-    }
-  } catch (err) {
-    console.error('Error appending responses to repo:', err);
+  // Attempt to append to repo if configured (non-blocking)
+  if (typeof appendResponsesToRepoByHour === 'function') {
+    appendResponsesToRepoByHour().then(res => {
+      if (res && res.ok) {
+        console.log('Saved responses to repo.');
+      } else {
+        console.warn('Repo save skipped or failed.', res);
+      }
+    }).catch(err => console.error('Repo save error', err));
   }
 
   // Log answers for teacher
   showAnswers(mc_questions, short_questions, bonus_questions);
+
+  return score;
 };
 
-// -----------------------------
 // startQuiz wrapper (global)
-// -----------------------------
 function startQuiz() {
   if (typeof window.runQuiz !== 'function') {
     console.error('runQuiz is not defined');
     return;
   }
-  if (!Array.isArray(mc_questions) || !Array.isArray(short_questions) || !Array.isArray(bonus_questions)) {
-    console.error('Question arrays missing or not arrays');
+  if (!Array.isArray(window.mc_questions)) {
+    console.error('mc_questions not defined or not an array');
     return;
   }
   try {
-    window.runQuiz(mc_questions, short_questions, bonus_questions);
+    window.runQuiz(window.mc_questions, window.short_questions || [], window.bonus_questions || []);
   } catch (err) {
     console.error('Error running quiz:', err);
   }
-}
-
-// -----------------------------
-// Small helpers
-// -----------------------------
-function escapeHtml(s) {
-  return String(s || '').replace(/[&<>"']/g, function (m) {
-    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m];
-  });
-}
-function sanitizeFilename(s) {
-  return String(s || 'unknown').replace(/[\/\\#%&{}<>*? $!'":@+`|=]/g, '_');
 }
 
 // -----------------------------
