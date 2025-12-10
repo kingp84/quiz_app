@@ -153,9 +153,10 @@
   </body>
 </html>
 
-  <!--
-    3) Page wiring: form handler, download, teacher save, admin load (runs after quiz.js loads)
-  -->
+<div id="quizContainer"></div>
+
+<script src="./quiz.js?v=5"></script>
+
   <script>
     // Guard: ensure student_responses exists
     window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
@@ -241,7 +242,6 @@
     // Optional: reveal admin controls for local testing:
     // document.getElementById('adminReportContainer').classList.remove('hidden');
   </script>
-<div id="quizContainer"></div>
-<script src="./quiz.js?v=5"></script>
+
 </body>
 </html>
