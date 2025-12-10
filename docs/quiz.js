@@ -628,7 +628,23 @@ function startQuiz() {
 // Entry point (called from index.html)
 // -----------------------------
 function startQuiz() {
-  runQuiz(mc_questions, short_questions, bonus_questions);
+  if (typeof window.runQuiz !== 'function') {
+    console.error('runQuiz is not defined');
+    return;
+  }
+  if (!Array.isArray(window.mc_questions)) {
+    console.error('mc_questions not defined or not an array');
+    return;
+  }
+  try {
+    window.runQuiz(window.mc_questions, window.short_questions || [], window.bonus_questions || []);
+  } catch (err) {
+    console.error('Error running quiz:', err);
+  }
 }
+
+// expose functions globally so index.html can call them
+window.startQuiz = startQuiz;
+window.runQuiz = runQuiz;
 
 
