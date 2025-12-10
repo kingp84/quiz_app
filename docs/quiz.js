@@ -58,9 +58,9 @@ function prepareSession(questions = window.original_mc_questions) {
     correctIndex: m.correctIndex
   }));
 
-  // expose for bootstrap and UI
-  window.sessionMapping = sessionMapping;
-  window.mc_questions_session = mc_questions_session;
+window.sessionSeed = seed;
+window.sessionMapping = mapping;
+window.shuffledQuestions = shuffledQuestions; // expose instead of returning
 
   return { shuffledQuestions: mc_questions_session, sessionMapping };
 }
@@ -423,12 +423,6 @@ function prepareSession(questions = []) {
     sessionMapping
   };
 }
-
-  // Expose for client use and optional server persistence
-  window.sessionSeed = seed;
-  window.sessionMapping = mapping;
-  // Expose shuffledQuestions for startQuiz if you want to pass them in
-  return { seed, mapping, shuffledQuestions }
 
 // Expose prepareSession globally
 window.prepareSession = window.prepareSession || prepareSession;
