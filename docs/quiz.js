@@ -677,28 +677,24 @@ function showReview() {
 // Debug: confirm this file executed
 console.log('Loaded quiz.js at', new Date().toISOString());
 
-// Minimal safe startQuiz fallback (only used if your real startQuiz failed to define)
-if (typeof startQuiz === 'undefined') {
-  function startQuiz(questions = null) {
-    console.warn('Fallback startQuiz used. Define a full startQuiz() earlier in quiz.js for full behavior.');
-    if (Array.isArray(questions) && questions.length) {
-      mc_questions = questions;
-    }
-    currentIndex = 0;
-    // Build a simple sessionMapping fallback if prepareSession didn't run
-    if (!window.sessionMapping || !window.sessionMapping.length) {
-      window.sessionMapping = (mc_questions || []).map(q => ({
-        originalQuestion: q.question,
-        shuffledChoices: q.choices ? q.choices.slice() : [],
-        correctIndex: q.choices ? q.choices.findIndex(c => c === q.answer) : -1,
-        originalAnswer: q.answer
-      }));
-    }
-    if (typeof showQuestion === 'function') {
-      showQuestion();
-    } else {
-      console.error('showQuestion not defined; cannot render quiz.');
-    }
+// define startQuiz (place this before any export or calls)
+function startQuiz(questions = null) {
+  if (Array.isArray(questions) && questions.length) mc_questions = questions;
+  currentIndex = 0;
+
+  if (!window.sessionMapping || !window.sessionMapping.length) {
+    window.sessionMapping = (mc_questions || []).map(q => ({
+      originalQuestion: q.question,
+      shuffledChoices: q.choices ? q.choices.slice() : [],
+      correctIndex: q.choices ? q.choices.findIndex(c => c === q.answer) : -1,
+      originalAnswer: q.answer
+    }));
+  }
+
+  if (typeof showQuestion === 'function') {
+    showQuestion();
+  } else {
+    console.error('showQuestion not defined; cannot render quiz.');
   }
 }
 
