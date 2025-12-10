@@ -5,6 +5,66 @@
 // -----------------------------
 const student_responses = { mc: [], short: [], bonus: [], student_info: {} };
 
+// canonical original questions (do not reassign)
+window.original_mc_questions = (typeof mc_questions !== 'undefined' ? mc_questions : []);
+
+// session state you will mutate
+let mc_questions_session = window.original_mc_questions.slice();
+let currentIndex = 0;
+let sessionMapping = [];
+
+// Fisher-Yates shuffle
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function copyQuestion(q) {
+  return {
+    question: q.question,
+    choices: Array.isArray(q.choices) ? q.choices.slice() : [],
+    answer: q.answer
+  };
+}
+
+// prepareSession returns shuffledQuestions and sessionMapping
+function prepareSession(questions = window.original_mc_questions) {
+  const copied = (questions || []).map(copyQuestion);
+  const shuffledQuestions = shuffleArray(copied.slice());
+  sessionMapping = shuffledQuestions.map(q => {
+    const originalAnswer = q.answer;
+    const shuffledChoices = shuffleArray(q.choices.slice());
+    let correctIndex = -1;
+    if (typeof originalAnswer === 'number') {
+      const originalValue = q.choices[originalAnswer];
+      correctIndex = shuffledChoices.findIndex(c => c === originalValue);
+    } else {
+      correctIndex = shuffledChoices.findIndex(c => c === originalAnswer);
+    }
+    return {
+      question: q.question,
+      choices: shuffledChoices,
+      correctIndex,
+      originalAnswer
+    };
+  });
+
+  mc_questions_session = sessionMapping.map(m => ({
+    question: m.question,
+    choices: m.choices,
+    correctIndex: m.correctIndex
+  }));
+
+  // expose for bootstrap and UI
+  window.sessionMapping = sessionMapping;
+  window.mc_questions_session = mc_questions_session;
+
+  return { shuffledQuestions: mc_questions_session, sessionMapping };
+}
+
 // -----------------------------
 // Multiple-choice questions
 // -----------------------------
@@ -737,11 +797,7 @@ function startQuiz(questions = null) {
 window.prepareSession = window.prepareSession || prepareSession;
 window.startQuiz = window.startQuiz || startQuiz;
 
-// Backwards compatibility for any old runQuiz() calls
-window.runQuiz = window.runQuiz || function(...args) {
-  if (typeof startQuiz === 'function') return startQuiz(...args);
-  console.error('startQuiz not defined; runQuiz cannot start the quiz.');
-};
+
 
 
 
