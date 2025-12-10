@@ -5,15 +5,12 @@
 // -----------------------------
 const student_responses = { mc: [], short: [], bonus: [], student_info: {} };
 
-// canonical original questions (do not reassign)
-window.original_mc_questions = (typeof mc_questions !== 'undefined' ? mc_questions : []);
-
-// session state you will mutate
-let mc_questions_session = window.original_mc_questions.slice();
+// Session state (mutable)
+let mc_questions_session = [];
 let currentIndex = 0;
 let sessionMapping = [];
 
-// Fisher-Yates shuffle
+// Fisher-Yates shuffle (in-place)
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -22,6 +19,7 @@ function shuffleArray(arr) {
   return arr;
 }
 
+// Shallow copy a question so we never mutate the original
 function copyQuestion(q) {
   return {
     question: q.question,
@@ -30,20 +28,27 @@ function copyQuestion(q) {
   };
 }
 
-// prepareSession returns shuffledQuestions and sessionMapping
+// Prepare a session: make copies, shuffle question order and choices,
+// and compute the correct index for each shuffled question.
 function prepareSession(questions = window.original_mc_questions) {
   const copied = (questions || []).map(copyQuestion);
+
+  // Shuffle question order
   const shuffledQuestions = shuffleArray(copied.slice());
+
+  // For each question, shuffle choices and compute correctIndex
   sessionMapping = shuffledQuestions.map(q => {
     const originalAnswer = q.answer;
     const shuffledChoices = shuffleArray(q.choices.slice());
     let correctIndex = -1;
+
     if (typeof originalAnswer === 'number') {
       const originalValue = q.choices[originalAnswer];
       correctIndex = shuffledChoices.findIndex(c => c === originalValue);
     } else {
       correctIndex = shuffledChoices.findIndex(c => c === originalAnswer);
     }
+
     return {
       question: q.question,
       choices: shuffledChoices,
@@ -52,15 +57,16 @@ function prepareSession(questions = window.original_mc_questions) {
     };
   });
 
+  // Expose the session questions the UI will read from
   mc_questions_session = sessionMapping.map(m => ({
     question: m.question,
     choices: m.choices,
     correctIndex: m.correctIndex
   }));
 
-window.sessionSeed = seed;
-window.sessionMapping = mapping;
-window.shuffledQuestions = shuffledQuestions; // expose instead of returning
+  // Expose for other code and debugging
+  window.sessionMapping = sessionMapping;
+  window.mc_questions_session = mc_questions_session;
 
   return { shuffledQuestions: mc_questions_session, sessionMapping };
 }
@@ -344,6 +350,66 @@ const bonus_questions = [
         answer: "Profiling is a tool, useful but must be combined with forensic evidence."
     }
 ];
+
+// Expose the canonical original questions (created in the questions block above)
+window.original_mc_questions = (typeof mc_questions !== 'undefined' ? mc_questions : []);
+
+// Ensure session variables start from the original copy
+mc_questions_session = window.original_mc_questions.slice();
+window.mc_questions_session = mc_questions_session;
+
+// Start the quiz using a prepared session (or accept shuffled questions)
+function startQuiz(questions = null) {
+  if (Array.isArray(questions) && questions.length) {
+    mc_questions_session = questions;
+    window.mc_questions_session = mc_questions_session;
+  }
+
+  // If no sessionMapping exists, prepare one now
+  if (!window.sessionMapping || !window.sessionMapping.length) {
+    const res = prepareSession(window.original_mc_questions);
+    mc_questions_session = res.shuffledQuestions;
+    window.sessionMapping = res.sessionMapping;
+    window.mc_questions_session = mc_questions_session;
+  }
+
+  currentIndex = 0;
+
+  if (typeof showQuestion === 'function') {
+    showQuestion();
+  } else {
+    console.error('showQuestion not defined; cannot render quiz.');
+  }
+}
+
+// Export functions safely after definitions
+if (typeof prepareSession === 'function') {
+  window.prepareSession = window.prepareSession || prepareSession;
+}
+if (typeof startQuiz === 'function') {
+  window.startQuiz = window.startQuiz || startQuiz;
+}
+
+// Optional safe shim for old callers (non-throwing)
+if (typeof window.runQuiz !== 'function') {
+  window.runQuiz = function(...args) {
+    if (typeof window.startQuiz === 'function') return window.startQuiz(...args);
+    console.error('startQuiz not defined; runQuiz cannot start the quiz.');
+  };
+}
+
+// Attach Start button handler (safe: only calls startQuiz if available)
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('startQuizBtn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    if (typeof window.startQuiz === 'function') {
+      window.startQuiz();
+    } else {
+      console.error('startQuiz not available yet.');
+    }
+  });
+});
 
 // -----------------------------
 // Quiz Functions
