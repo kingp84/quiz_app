@@ -155,8 +155,6 @@
   </body>
 </html>
 
-<script src="./quiz.js?v=5"></script>
-
   <script>
     // Guard: ensure student_responses exists
     window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
@@ -243,5 +241,27 @@
     // document.getElementById('adminReportContainer').classList.remove('hidden');
   </script>
 
+  <!-- load quiz logic -->
+  <script src="../quiz.js?v=5"></script>
+
+  <!-- bootstrap: prepare session then start quiz -->
+  <script>
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (typeof window.prepareSession !== 'function') {
+        console.error('prepareSession not found. Ensure quiz.js is loaded before this script.');
+        return;
+      }
+      try {
+        const result = await window.prepareSession(window.mc_questions || []);
+        if (typeof window.startQuiz === 'function') {
+          window.startQuiz(result.shuffledQuestions);
+        } else {
+          console.error('startQuiz not defined after quiz.js loaded');
+        }
+      } catch (err) {
+        console.error('Failed to prepare session:', err);
+      }
+    });
+  </script>
 </body>
 </html>
