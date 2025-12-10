@@ -310,6 +310,8 @@ window.student_responses = window.student_responses || { mc: [], short: [], bonu
 window.mc_questions = window.mc_questions || (typeof mc_questions !== 'undefined' ? mc_questions : []);
 window.short_questions = window.short_questions || (typeof short_questions !== 'undefined' ? short_questions : []);
 window.bonus_questions = window.bonus_questions || (typeof bonus_questions !== 'undefined' ? bonus_questions : []);
+window.startQuiz = window.startQuiz || startQuiz;
+window.runQuiz = window.runQuiz || runQuiz;
 
 // Utility helpers
 function escapeHtml(s) {
