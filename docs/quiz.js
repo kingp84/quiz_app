@@ -369,7 +369,6 @@ function shuffleArray(arr) {
   return arr;
 }
 
-// Make a deep-ish copy of a question (so original stays unchanged)
 function copyQuestion(q) {
   return {
     question: q.question,
