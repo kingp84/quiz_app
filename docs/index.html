@@ -231,9 +231,19 @@
 
 <script>
   window.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('startQuizBtn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
+    const startBtn = document.getElementById('startQuizBtn');
+    const intro = document.getElementById('intro');
+    const quizPage = document.getElementById('quizPage');
+
+    if (!startBtn) return;
+
+    startBtn.addEventListener('click', () => {
+      // hide intro instructions
+      if (intro) intro.style.display = 'none';
+      // show quiz page
+      if (quizPage) quizPage.style.display = 'block';
+
+      // now actually start the quiz
       if (typeof window.startQuiz === 'function') {
         window.startQuiz();
       } else {
