@@ -72,11 +72,10 @@
 
   <!-- Quiz page (hidden until start) -->
   <div id="quizPage" class="card">
-    <h2>Quiz in progress</h2>
+    <h2>Test in progress</h2>
     <div id="quiz"></div>
     <div id="progress" class="progress"></div>
       <div id="quizContainer"></div>
-      <button id="startQuizBtn" type="button">Start Quiz</button>
   </div>
 
   <!-- Results page (hidden until finish) -->
@@ -124,17 +123,7 @@
   if(!quizEl) return console.error('No #quiz element found');
   quizEl.innerHTML = '';
   const card = document.createElement('div');
-  card.innerHTML = '<h3>Test MC: Which is correct?</h3>';
-  ['A. One','B. Two','C. Three','D. Four'].forEach(t=>{
-    const b = document.createElement('button');
-    b.textContent = t;
-    b.style.display = 'block';
-    b.style.margin = '8px 0';
-    b.onclick = ()=>console.log('Clicked', t);
-    card.appendChild(b);
-  });
-  quizEl.appendChild(card);
-})();
+  card.innerHTML = '<h3>Test MC: Choose the answer that best completes the statement or answers the question.</h3>'
 </script>
 
   </body>
