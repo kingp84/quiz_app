@@ -56,13 +56,12 @@ function prepareSession() {
     choices: m.choices,
     correctIndex: m.correctIndex
   }));
+  return { shuffledQuestions: mc_questions_session, sessionMapping };
+}
 
   // Expose for other code and debugging
   window.sessionMapping = sessionMapping;
   window.mc_questions_session = mc_questions_session;
-
-  return { shuffledQuestions: mc_questions_session, sessionMapping };
-}
 
 // -----------------------------
 // Multiple-choice questions
