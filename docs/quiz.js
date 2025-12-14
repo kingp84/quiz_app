@@ -28,34 +28,27 @@ function copyQuestion(q) {
   };
 }
 
-// Prepare a session: make copies, shuffle question order and choices,
-// and compute the correct index for each shuffled question.
-function prepareSession(questions = window.original_mc_questions) {
-  const copied = (questions || []).map(copyQuestion);
-
-  // Shuffle question order
-  const shuffledQuestions = shuffleArray(copied.slice());
-
-  // For each question, shuffle choices and compute correctIndex
-  sessionMapping = shuffledQuestions.map(q => {
-    const originalAnswer = q.answer;
+// Prepare a session: shuffle MC, include short answer and bonus
+function prepareSession() {
+  // copy and shuffle MC
+  const mcCopied = mc_questions.map(copyQuestion);
+  const mcShuffled = shuffleArray(mcCopied.slice()).map(q => {
     const shuffledChoices = shuffleArray(q.choices.slice());
-    let correctIndex = -1;
-
-    if (typeof originalAnswer === 'number') {
-      const originalValue = q.choices[originalAnswer];
-      correctIndex = shuffledChoices.findIndex(c => c === originalValue);
-    } else {
-      correctIndex = shuffledChoices.findIndex(c => c === originalAnswer);
-    }
-
-    return {
-      question: q.question,
-      choices: shuffledChoices,
-      correctIndex,
-      originalAnswer
-    };
+    return { ...q, choices: shuffledChoices, type: 'mc' };
   });
+
+  // copy short answer
+  const saCopied = short_answer_questions.map(q => ({ ...q, type: 'short' }));
+
+  // copy bonus
+  const bonusCopied = bonus_questions.map(q => ({ ...q, type: 'bonus' }));
+
+  // combine all
+  const allQuestions = [...mcShuffled, ...saCopied, ...bonusCopied];
+
+  window.sessionQuestions = allQuestions;
+  return allQuestions;
+}
 
   // Expose the session questions the UI will read from
   mc_questions_session = sessionMapping.map(m => ({
@@ -809,7 +802,7 @@ function showReview() {
   });
 
   const submitBtn = document.createElement('button');
-  submitBtn.textContent = "Submit Quiz";
+  submitBtn.textContent = "Submit Test";
   submitBtn.onclick = () => {
     console.log("Final responses:", student_responses);
     // add CSV export or save logic here
@@ -841,6 +834,24 @@ function startQuiz(questions = null) {
       originalAnswer: q.answer
     }));
   }
+
+function finishQuiz() {
+  // calculate score
+  let score = 0;
+  window.sessionMapping.forEach((q, i) => {
+    const chosen = q.choices[q.correctIndex]; // adjust based on your tracking
+    if (chosen === q.originalAnswer) score++;
+  });
+
+  // hide quiz, show results
+  document.getElementById('quizPage').style.display = 'none';
+  document.getElementById('resultsPage').style.display = 'block';
+
+  // display score
+  document.getElementById('results').textContent =
+    `You scored ${score} out of ${window.sessionMapping.length}`;
+}
+window.finishQuiz = finishQuiz;
 
   if (typeof showQuestion === 'function') {
     showQuestion();

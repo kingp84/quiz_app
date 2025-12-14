@@ -125,8 +125,7 @@
   const card = document.createElement('div');
   card.innerHTML = '<h3>Test MC: Choose the answer that best completes the statement or answers the question.</h3>'
 </script>
-
-  </body>
+</body>
 </html>
 
   <script>
@@ -224,19 +223,33 @@
     const intro = document.getElementById('intro');
     const quizPage = document.getElementById('quizPage');
 
-    if (!startBtn) return;
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        // hide intro
+        if (intro) intro.style.display = 'none';
+        // show quiz page
+        if (quizPage) quizPage.style.display = 'block';
 
-    startBtn.addEventListener('click', () => {
-      // hide intro instructions
-      if (intro) intro.style.display = 'none';
-      // show quiz page
-      if (quizPage) quizPage.style.display = 'block';
+        // start the quiz
+        if (typeof window.startQuiz === 'function') {
+          window.startQuiz();
+        }
+      });
+    }
+  });
+</script>
 
-      // now actually start the quiz
-      if (typeof window.startQuiz === 'function') {
-        window.startQuiz();
+
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const submitBtn = document.getElementById('submitQuizBtn');
+    if (!submitBtn) return;
+
+    submitBtn.addEventListener('click', () => {
+      if (typeof window.finishQuiz === 'function') {
+        window.finishQuiz(); // call your results logic
       } else {
-        console.error('startQuiz not available yet.');
+        console.error('finishQuiz not defined; cannot submit quiz.');
       }
     });
   });
