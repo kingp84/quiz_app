@@ -255,25 +255,28 @@
   console.log('prepareSession (before):', typeof window.prepareSession);
   console.log('startQuiz (before):', typeof window.startQuiz);
 
-  // Bootstrap: prepare session then start quiz
-  window.addEventListener('DOMContentLoaded', async () => {
-    if (typeof window.prepareSession !== 'function') {
-      console.error('prepareSession not found. Ensure quiz.js is loaded and has no syntax errors.');
-      const quizPage = document.getElementById('quizPage');
-      if (quizPage) quizPage.querySelector('#quiz')?.insertAdjacentHTML('afterbegin', '<div class="muted">Quiz script not loaded or startQuiz not defined.</div>');
-      return;
-    }
-    try {
-      const result = await window.prepareSession(window.mc_questions || []);
-      if (typeof window.startQuiz === 'function') {
-        window.startQuiz(result.shuffledQuestions);
-      } else {
-        console.error('startQuiz not defined after quiz.js loaded');
-      }
-    } catch (err) {
-      console.error('Failed to prepare session:', err);
-    }
-  });
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('startQuizBtn');
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        if (typeof window.startQuiz === 'function') {
+          window.startQuiz();
+        } else {
+          console.error('startQuiz not available yet.');
+        }
+      });
+    });
+</script>
+
+  <!-- optional debug -->
+  <script>
+    console.log(
+      'DEBUG after quiz.js load: prepareSession=',
+      typeof window.prepareSession,
+      'startQuiz=',
+      typeof window.startQuiz
+    );
 </script>
 </body>
 </html>
