@@ -12,44 +12,43 @@ let sessionMapping = [];
 
 // Fisher-Yates shuffle (in-place)
 function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+for (let i = arr.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+}
+return arr;
 }
 
 // Shallow copy a question so we never mutate the original
 function copyQuestion(q) {
-  return {
-    question: q.question,
-    choices: Array.isArray(q.choices) ? q.choices.slice() : [],
-    answer: q.answer
-  };
+return {
+  question: q.question,
+  choices: Array.isArray(q.choices) ? q.choices.slice() : [],
+  answer: q.answer
+};
 }
 
 // Prepare a session: shuffle MC, include short answer and bonus
 function prepareSession() {
-  // copy and shuffle MC
-  const mcCopied = mc_questions.map(copyQuestion);
-  const mcShuffled = shuffleArray(mcCopied.slice()).map(q => {
-    const shuffledChoices = shuffleArray(q.choices.slice());
-    return { ...q, choices: shuffledChoices, type: 'mc' };
-  });
+// copy and shuffle MC
+const mcCopied = mc_questions.map(copyQuestion);
+const mcShuffled = shuffleArray(mcCopied.slice()).map(q => {
+  const shuffledChoices = shuffleArray(q.choices.slice());
+  return { ...q, choices: shuffledChoices, type: 'mc' };
+});
 
-  // copy short answer
-  const saCopied = short_answer_questions.map(q => ({ ...q, type: 'short' }));
+// copy short answer
+const saCopied = short_answer_questions.map(q => ({ ...q, type: 'short' }));
 
-  // copy bonus
-  const bonusCopied = bonus_questions.map(q => ({ ...q, type: 'bonus' }));
+// copy bonus
+const bonusCopied = bonus_questions.map(q => ({ ...q, type: 'bonus' }));
 
-  // combine all
-  const allQuestions = [...mcShuffled, ...saCopied, ...bonusCopied];
+// combine all
+const allQuestions = [...mcShuffled, ...saCopied, ...bonusCopied];
 
-  window.sessionQuestions = allQuestions;
-  return allQuestions;
+window.sessionQuestions = allQuestions;
+return allQuestions;
 }
-
   // Expose the session questions the UI will read from
   mc_questions_session = sessionMapping.map(m => ({
     question: m.question,
@@ -57,11 +56,10 @@ function prepareSession() {
     correctIndex: m.correctIndex
   }));
   return { shuffledQuestions: mc_questions_session, sessionMapping };
-}
-
   // Expose for other code and debugging
   window.sessionMapping = sessionMapping;
   window.mc_questions_session = mc_questions_session;
+}
 
 // -----------------------------
 // Multiple-choice questions
