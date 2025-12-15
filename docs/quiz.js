@@ -12,53 +12,42 @@ let sessionMapping = [];
 
 // Fisher-Yates shuffle (in-place)
 function shuffleArray(arr) {
-for (let i = arr.length - 1; i > 0; i--) {
-  const j = Math.floor(Math.random() * (i + 1));
-  [arr[i], arr[j]] = [arr[j], arr[i]];
-}
-return arr;
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 // Shallow copy a question so we never mutate the original
 function copyQuestion(q) {
-return {
-  question: q.question,
-  choices: Array.isArray(q.choices) ? q.choices.slice() : [],
-  answer: q.answer
-};
+  return {
+    question: q.question,
+    choices: Array.isArray(q.choices) ? q.choices.slice() : [],
+    answer: q.answer
+  };
 }
 
 // Prepare a session: shuffle MC, include short answer and bonus
 function prepareSession() {
-// copy and shuffle MC
-const mcCopied = mc_questions.map(copyQuestion);
-const mcShuffled = shuffleArray(mcCopied.slice()).map(q => {
-  const shuffledChoices = shuffleArray(q.choices.slice());
-  return { ...q, choices: shuffledChoices, type: 'mc' };
-});
+  // copy and shuffle MC
+  const mcCopied = mc_questions.map(copyQuestion);
+  const mcShuffled = shuffleArray(mcCopied.slice()).map(q => {
+    const shuffledChoices = shuffleArray(q.choices.slice());
+    return { ...q, choices: shuffledChoices, type: 'mc' };
+  });
 
-// copy short answer
-const saCopied = short_answer_questions.map(q => ({ ...q, type: 'short' }));
+  // copy short answer
+  const saCopied = short_answer_questions.map(q => ({ ...q, type: 'short' }));
 
-// copy bonus
-const bonusCopied = bonus_questions.map(q => ({ ...q, type: 'bonus' }));
+  // copy bonus
+  const bonusCopied = bonus_questions.map(q => ({ ...q, type: 'bonus' }));
 
-// combine all
-const allQuestions = [...mcShuffled, ...saCopied, ...bonusCopied];
+  // combine all
+  const allQuestions = [...mcShuffled, ...saCopied, ...bonusCopied];
 
-window.sessionQuestions = allQuestions;
-return allQuestions;
-}
-  // Expose the session questions the UI will read from
-  mc_questions_session = sessionMapping.map(m => ({
-    question: m.question,
-    choices: m.choices,
-    correctIndex: m.correctIndex
-  }));
-  return { shuffledQuestions: mc_questions_session, sessionMapping };
-  // Expose for other code and debugging
-  window.sessionMapping = sessionMapping;
-  window.mc_questions_session = mc_questions_session;
+  window.sessionQuestions = allQuestions;
+  return allQuestions;
 }
 
 // -----------------------------
@@ -810,19 +799,15 @@ function showReview() {
 // -----------------------------
 // Entry point
 // -----------------------------
-// Debug: confirm this file executed
 console.log('Loaded quiz.js at', new Date().toISOString());
 
-// define startQuiz (place this before any export or calls)
 function startQuiz(questions = null) {
   if (Array.isArray(questions) && questions.length) {
-    // mc_questions must be declared with let earlier
-    mc_questions = questions;
+    mc_questions = questions; // mc_questions must be declared with let earlier
   }
   currentIndex = 0;
-  showQuestion(); // your existing UI function should read mc_questions[currentIndex]
-}
 
+  // build session mapping if not already built
   if (!window.sessionMapping || !window.sessionMapping.length) {
     window.sessionMapping = (mc_questions || []).map(q => ({
       originalQuestion: q.question,
@@ -832,34 +817,32 @@ function startQuiz(questions = null) {
     }));
   }
 
-function finishQuiz() {
-  // calculate score
-  let score = 0;
-  window.sessionMapping.forEach((q, i) => {
-    const chosen = q.choices[q.correctIndex]; // adjust based on your tracking
-    if (chosen === q.originalAnswer) score++;
-  });
-
-  // hide quiz, show results
-  document.getElementById('quizPage').style.display = 'none';
-  document.getElementById('resultsPage').style.display = 'block';
-
-  // display score
-  document.getElementById('results').textContent =
-    `You scored ${score} out of ${window.sessionMapping.length}`;
-}
-window.finishQuiz = finishQuiz;
-
+  // show the first question
   if (typeof showQuestion === 'function') {
     showQuestion();
   } else {
     console.error('showQuestion not defined; cannot render quiz.');
   }
+}
+
+function finishQuiz() {
+  let score = 0;
+  window.sessionMapping.forEach(q => {
+    const chosen = q.choices[q.correctIndex]; // adjust based on your tracking
+    if (chosen === q.originalAnswer) score++;
+  });
+
+  document.getElementById('quizPage').style.display = 'none';
+  document.getElementById('resultsPage').style.display = 'block';
+
+  document.getElementById('results').textContent =
+    `You scored ${score} out of ${window.sessionMapping.length}`;
+}
+window.finishQuiz = finishQuiz;
 
 // Ensure global exports
 window.prepareSession = window.prepareSession || prepareSession;
 window.startQuiz = window.startQuiz || startQuiz;
-
 
 
 
