@@ -838,11 +838,11 @@ function finishQuiz() {
   document.getElementById('results').textContent =
     `You scored ${score} out of ${window.sessionMapping.length}`;
 }
-window.finishQuiz = finishQuiz;
 
 // Ensure global exports
 window.prepareSession = window.prepareSession || prepareSession;
 window.startQuiz = window.startQuiz || startQuiz;
+window.finishQuiz = window.finishQuiz || finishQuiz;
 
 
 

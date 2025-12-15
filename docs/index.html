@@ -120,102 +120,102 @@
 <script>
 (function(){
   const quizEl = document.getElementById('quiz');
-  if(!quizEl) return console.error('No #quiz element found');
+  if(!quizEl) {
+    console.error('No #quiz element found');
+    return;
+  }
   quizEl.innerHTML = '';
   const card = document.createElement('div');
-  card.innerHTML = '<h3>Test MC: Choose the answer that best completes the statement or answers the question.</h3>'
+  card.innerHTML = '<h3>Test MC: Choose the answer that best completes the statement or answers the question.</h3>';
+  quizEl.appendChild(card);
+})();
 </script>
-</body>
-</html>
 
-  <script>
-    // Guard: ensure student_responses exists
-    window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
+<script>
+  // Guard: ensure student_responses exists
+  window.student_responses = window.student_responses || { mc: [], short: [], bonus: [], student_info: {} };
 
-    // Form submit starts the quiz (startQuiz defined in quiz.js)
-    document.getElementById('studentForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const name = document.getElementById('name').value.trim();
-      const hour = document.getElementById('hour').value.trim();
-      if (!name || !hour) return;
-      window.student_responses.student_info = { name, hour };
+  // Form submit starts the quiz (startQuiz defined in quiz.js)
+  document.getElementById('studentForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const hour = document.getElementById('hour').value.trim();
+    if (!name || !hour) return;
+    window.student_responses.student_info = { name, hour };
 
-      // Switch views
-      document.getElementById('intro').style.display = 'none';
-      document.getElementById('quizPage').style.display = 'block';
+    // Switch views
+    document.getElementById('intro').style.display = 'none';
+    document.getElementById('quizPage').style.display = 'block';
 
-      // Call startQuiz (guarded)
-      if (typeof startQuiz === 'function') {
-        try {
-          startQuiz();
-        } catch (err) {
-          console.error('Error starting quiz:', err);
-          document.getElementById('quiz').innerHTML = '<p class="muted">An error occurred starting the quiz. Check console for details.</p>';
+    // Call startQuiz (guarded)
+    if (typeof startQuiz === 'function') {
+      try {
+        startQuiz();
+      } catch (err) {
+        console.error('Error starting quiz:', err);
+        document.getElementById('quiz').innerHTML = '<p class="muted">An error occurred starting the quiz. Check console for details.</p>';
+      }
+    } else {
+      document.getElementById('quiz').innerHTML = '<p class="muted">Quiz script not loaded or startQuiz not defined.</p>';
+    }
+  });
+
+  // Download CSV (student)
+  document.getElementById('downloadBtn').addEventListener('click', function () {
+    if (typeof downloadCSV === 'function') {
+      downloadCSV();
+    } else {
+      alert('Download not available: quiz script not loaded.');
+    }
+  });
+
+  // Teacher save
+  document.getElementById('teacherSaveBtn').addEventListener('click', async function () {
+    if (typeof appendResponsesToRepoByHour === 'function') {
+      try {
+        const res = await appendResponsesToRepoByHour();
+        if (res && res.ok) {
+          alert('Saved to class file successfully (repo).');
+        } else {
+          alert('Save to repo failed. Check console for details.');
+          console.warn(res);
         }
-      } else {
-        document.getElementById('quiz').innerHTML = '<p class="muted">Quiz script not loaded or startQuiz not defined.</p>';
+      } catch (err) {
+        console.error(err);
+        alert('Error saving to repo. See console.');
       }
-    });
+    } else {
+      alert('Save to repo not configured on this page.');
+    }
+  });
 
-    // Download CSV (student)
-    document.getElementById('downloadBtn').addEventListener('click', function () {
-      if (typeof downloadCSV === 'function') {
-        downloadCSV();
-      } else {
-        alert('Download not available: quiz script not loaded.');
-      }
-    });
-
-    // Teacher save: attempts to call appendResponsesToRepoByHour if configured
-    document.getElementById('teacherSaveBtn').addEventListener('click', async function () {
-      if (typeof appendResponsesToRepoByHour === 'function') {
-        try {
-          const res = await appendResponsesToRepoByHour();
-          if (res && res.ok) {
-            alert('Saved to class file successfully (repo).');
-          } else {
-            alert('Save to repo failed. Check console for details.');
-            console.warn(res);
-          }
-        } catch (err) {
-          console.error(err);
-          alert('Error saving to repo. See console.');
+  // Admin: load class data
+  document.getElementById('loadClassBtn').addEventListener('click', async function () {
+    const hour = document.getElementById('adminHour').value.trim();
+    if (!hour) return alert('Enter an hour to load.');
+    if (typeof fetchClassDataForHour === 'function') {
+      try {
+        const studentsData = await fetchClassDataForHour(hour);
+        if (!Array.isArray(studentsData)) {
+          alert('No class data found or parsing failed.');
+          return;
         }
-      } else {
-        alert('Save to repo not configured on this page.');
+        const report = computeClassStatistics(studentsData, window.mc_questions || []);
+        renderClassReport(report, 'classReport');
+        document.getElementById('adminReportContainer').classList.remove('hidden');
+        document.getElementById('adminReportContainer').removeAttribute('aria-hidden');
+      } catch (err) {
+        console.error(err);
+        alert('Failed to load class data. See console.');
       }
-    });
+    } else {
+      alert('Class data fetch not implemented on this page.');
+    }
+  });
+</script>
 
-    // Admin: load class data (teacher)
-    document.getElementById('loadClassBtn').addEventListener('click', async function () {
-      const hour = document.getElementById('adminHour').value.trim();
-      if (!hour) return alert('Enter an hour to load.');
-      if (typeof fetchClassDataForHour === 'function') {
-        try {
-          const studentsData = await fetchClassDataForHour(hour);
-          if (!Array.isArray(studentsData)) {
-            alert('No class data found or parsing failed.');
-            return;
-          }
-          const report = computeClassStatistics(studentsData, window.mc_questions || []);
-          renderClassReport(report, 'classReport');
-          document.getElementById('adminReportContainer').classList.remove('hidden');
-          document.getElementById('adminReportContainer').removeAttribute('aria-hidden');
-        } catch (err) {
-          console.error(err);
-          alert('Failed to load class data. See console.');
-        }
-      } else {
-        alert('Class data fetch not implemented on this page.');
-      }
-    });
-
-    // Optional: reveal admin controls for local testing:
-    // document.getElementById('adminReportContainer').classList.remove('hidden');
-  </script>
-
-  <!-- load quiz logic -->
-  <script src="quiz.js?v=1"></script>
+<!-- load quiz logic -->
+<script src="quiz.js"></script>
 
 <script>
   window.addEventListener('DOMContentLoaded', () => {
@@ -225,12 +225,8 @@
 
     if (startBtn) {
       startBtn.addEventListener('click', () => {
-        // hide intro
         if (intro) intro.style.display = 'none';
-        // show quiz page
         if (quizPage) quizPage.style.display = 'block';
-
-        // start the quiz
         if (typeof window.startQuiz === 'function') {
           window.startQuiz();
         }
@@ -239,7 +235,6 @@
   });
 </script>
 
-
 <script>
   window.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submitQuizBtn');
@@ -247,7 +242,7 @@
 
     submitBtn.addEventListener('click', () => {
       if (typeof window.finishQuiz === 'function') {
-        window.finishQuiz(); // call your results logic
+        window.finishQuiz();
       } else {
         console.error('finishQuiz not defined; cannot submit quiz.');
       }
@@ -255,40 +250,6 @@
   });
 </script>
 
-  <script>
-    console.log('DEBUG after quiz.js load: prepareSession=', typeof window.prepareSession, 'startQuiz=', typeof window.startQuiz);
-  </script>
-
-
-  <!-- bootstrap: prepare session then start quiz -->
 <script>
-  // Quick diagnostic
-  console.log('SCRIPT SRC:', document.querySelector('script[src*="quiz.js"]')?.getAttribute('src'));
-  console.log('prepareSession (before):', typeof window.prepareSession);
-  console.log('startQuiz (before):', typeof window.startQuiz);
-
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      const btn = document.getElementById('startQuizBtn');
-      if (!btn) return;
-      btn.addEventListener('click', () => {
-        if (typeof window.startQuiz === 'function') {
-          window.startQuiz();
-        } else {
-          console.error('startQuiz not available yet.');
-        }
-      });
-    });
-  </script>
-
-  <!-- optional debug -->
-  <script>
-    console.log(
-      'DEBUG after quiz.js load: prepareSession=',
-      typeof window.prepareSession,
-      'startQuiz=',
-      typeof window.startQuiz
-    );
+  console.log('DEBUG after quiz.js load: prepareSession=', typeof window.prepareSession, 'startQuiz=', typeof window.startQuiz);
 </script>
-</body>
-</html>
