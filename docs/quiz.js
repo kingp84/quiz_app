@@ -508,7 +508,7 @@ function createBadge(text) {
   return d;
 }
 
-// Render a multiple-choice question card and return a Promise that resolves with points earned
+// Render a question card (MC or short/bonus) and return a Promise
 function renderQuestionCard(qObj, index, total) {
   return new Promise(resolve => {
     const quizEl = document.getElementById('quiz');
@@ -521,33 +521,6 @@ function renderQuestionCard(qObj, index, total) {
     card.style.padding = '12px';
     card.style.border = '1px solid #ddd';
     card.style.borderRadius = '8px';
-
-    const prompt = document.createElement('h3');
-    prompt.textContent = qObj.question;
-    card.appendChild(prompt);
-
-    if (qObj.type === 'mc') {
-      qObj.choices.forEach(choice => {
-        const btn = document.createElement('button');
-        btn.textContent = choice;
-        btn.addEventListener('click', () => {
-          window.sessionQuestions[index].selected = choice;
-          resolve(choice);
-        });
-        card.appendChild(btn);
-      });
-    } else {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.addEventListener('blur', () => {
-        window.sessionQuestions[index].response = input.value;
-        resolve(input.value);
-      });
-      card.appendChild(input);
-    }
-    quizEl.appendChild(card);
-  });
-}
 
     // Header with remaining badge
     const header = document.createElement('div');
@@ -571,55 +544,70 @@ function renderQuestionCard(qObj, index, total) {
     header.appendChild(remainingBadge);
     card.appendChild(header);
 
-function renderMultipleChoiceCard(qObj, index) {
-  return new Promise(resolve => {
-    const quizEl = document.getElementById('quiz');
-    const card = document.createElement('div');
+    // Question prompt
+    const prompt = document.createElement('p');
+    prompt.textContent = qObj.question;
+    card.appendChild(prompt);
 
-    // Choices as buttons
-    (qObj.choices || []).forEach(choiceText => {
-      const btn = document.createElement('button');
-      btn.textContent = choiceText;
-      btn.style.display = 'block';
-      btn.style.margin = '8px 0';
+    if (qObj.type === 'mc') {
+      (qObj.choices || []).forEach(choiceText => {
+        const btn = document.createElement('button');
+        btn.textContent = choiceText;
+        btn.style.display = 'block';
+        btn.style.margin = '8px 0';
 
-      btn.onclick = () => {
-        const now = new Date().toISOString();
-        const selected = choiceText;
-        const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
-        const points = correct ? 4 : 0;
+        btn.onclick = () => {
+          const now = new Date().toISOString();
+          const selected = choiceText;
+          const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
+          const points = correct ? 4 : 0;
 
-        window.student_responses.mc[index] = {
-          question: qObj.question,
-          response: selected,
-          start_time: now,
-          end_time: now,
-          correct: !!correct,
-          unit: qObj.unit || 'Uncategorized'
+          // record response
+          window.student_responses.mc[index] = {
+            question: qObj.question,
+            response: selected,
+            start_time: now,
+            end_time: now,
+            correct: !!correct,
+            unit: qObj.unit || 'Uncategorized'
+          };
+
+          // hide other buttons and style the chosen one
+          const allBtns = btn.parentElement.querySelectorAll('button');
+          allBtns.forEach(b => {
+            if (b !== btn) b.style.display = 'none';
+            b.textContent = b.textContent.replace(' ✔️', '');
+            b.style.backgroundColor = '';
+            b.style.color = '';
+            b.style.fontWeight = '';
+          });
+
+          btn.style.display = 'block';
+          btn.style.backgroundColor = '#4CAF50';
+          btn.style.color = '#fff';
+          btn.style.fontWeight = 'bold';
+          btn.textContent = choiceText + ' ✔️';
+
+          resolve(points);
         };
 
-        const allBtns = btn.parentElement.querySelectorAll('button');
-        allBtns.forEach(b => {
-          if (b !== btn) b.style.display = 'none';
-          b.textContent = b.textContent.replace(' ✔️', '');
-          b.style.backgroundColor = '';
-          b.style.color = '';
-          b.style.fontWeight = '';
-        });
-
-        btn.style.display = 'block';
-        btn.style.backgroundColor = '#4CAF50';
-        btn.style.color = '#fff';
-        btn.style.fontWeight = 'bold';
-        btn.textContent = choiceText + ' ✔️';
-
-        resolve(points);
-      };
-
-      card.appendChild(btn);
-    });
+        card.appendChild(btn);
+      });
+    } else {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.addEventListener('blur', () => {
+        window.sessionQuestions[index].response = input.value;
+        resolve(input.value);
+      });
+      card.appendChild(input);
+    }
 
     quizEl.appendChild(card);
+
+    if (progressEl) {
+      progressEl.textContent = `${remainingCount} question${remainingCount === 1 ? '' : 's'} remaining`;
+    }
   });
 }
 
