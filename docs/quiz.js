@@ -571,17 +571,38 @@ function renderQuestionCard(qObj, index, total) {
     header.appendChild(remainingBadge);
     card.appendChild(header);
 
-    // Choices as buttons
-    (qObj.choices || []).forEach(choiceText => {
-      const btn = document.createElement('button');
-      btn.textContent = choiceText;
-      btn.style.display = 'block';
-      btn.style.margin = '8px 0';
-      btn.onclick = () => {
-        const now = new Date().toISOString();
-        const selected = (choiceText && choiceText.charAt(0)) || '';
-        const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
-        const points = correct ? 4 : 0;
+// Choices as buttons
+(qObj.choices || []).forEach(choiceText => {
+  const btn = document.createElement('button');
+  btn.textContent = choiceText;
+  btn.style.display = 'block';
+  btn.style.margin = '8px 0';
+
+  btn.onclick = () => {
+    const now = new Date().toISOString();
+    const selected = (choiceText && choiceText.charAt(0)) || '';
+    const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
+    const points = correct ? 4 : 0;
+
+    // record the response
+    student_responses.mc[currentIndex] = choiceText;
+
+    // hide all other buttons in this question block
+    const allBtns = btn.parentElement.querySelectorAll('button');
+    allBtns.forEach(b => {
+      if (b !== btn) {
+        b.style.display = 'none';
+      }
+    });
+
+    // visually mark the chosen button
+    btn.style.backgroundColor = '#4CAF50';   // green background
+    btn.style.color = '#fff';                // white text
+    btn.style.fontWeight = 'bold';
+  };
+
+  container.appendChild(btn);
+});
 
         // Record response
         window.student_responses.mc.push({
