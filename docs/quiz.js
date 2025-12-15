@@ -869,7 +869,6 @@ function startQuiz() {
   } else {
     console.error('No questions available to render.');
   }
-}
 
   // show quiz page
   document.getElementById('quizPage').style.display = 'block';
