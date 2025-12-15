@@ -579,26 +579,25 @@ function renderQuestionCard(qObj, index, total) {
   btn.style.margin = '8px 0';
 
   btn.onclick = () => {
-    const now = new Date().toISOString();
-    const selected = (choiceText && choiceText.charAt(0)) || '';
-    const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
-    const points = correct ? 4 : 0;
-
     // record the response
     student_responses.mc[currentIndex] = choiceText;
 
-    // hide all other buttons in this question block
+    // reset all buttons in this question block
     const allBtns = btn.parentElement.querySelectorAll('button');
     allBtns.forEach(b => {
-      if (b !== btn) {
-        b.style.display = 'none';
-      }
+      b.style.display = 'none';          // hide all
+      b.textContent = b.textContent.replace(' ✔️', ''); // remove old check marks
+      b.style.backgroundColor = '';
+      b.style.color = '';
+      b.style.fontWeight = '';
     });
 
-    // visually mark the chosen button
+    // show only the clicked one, styled and with check mark
+    btn.style.display = 'block';
     btn.style.backgroundColor = '#4CAF50';   // green background
     btn.style.color = '#fff';                // white text
     btn.style.fontWeight = 'bold';
+    btn.textContent = choiceText + ' ✔️';
   };
 
   container.appendChild(btn);
