@@ -503,7 +503,7 @@ function createBadge(text) {
 }
 
 // Render a multiple-choice question card and return a Promise that resolves with points earned
-function renderMCQuestionCard(qObj, index, total) {
+function renderQuestionCard(qObj, index, total) {
   return new Promise(resolve => {
     const quizEl = document.getElementById('quiz');
     const progressEl = document.getElementById('progress');
@@ -515,6 +515,33 @@ function renderMCQuestionCard(qObj, index, total) {
     card.style.padding = '12px';
     card.style.border = '1px solid #ddd';
     card.style.borderRadius = '8px';
+
+    const prompt = document.createElement('h3');
+    prompt.textContent = qObj.question;
+    card.appendChild(prompt);
+
+    if (qObj.type === 'mc') {
+      qObj.choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.textContent = choice;
+        btn.addEventListener('click', () => {
+          window.sessionQuestions[index].selected = choice;
+          resolve(choice);
+        });
+        card.appendChild(btn);
+      });
+    } else {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.addEventListener('blur', () => {
+        window.sessionQuestions[index].response = input.value;
+        resolve(input.value);
+      });
+      card.appendChild(input);
+    }
+    quizEl.appendChild(card);
+  });
+}
 
     // Header with remaining badge
     const header = document.createElement('div');
