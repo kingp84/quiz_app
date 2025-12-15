@@ -579,52 +579,46 @@ function renderQuestionCard(qObj, index, total) {
   btn.style.margin = '8px 0';
 
   btn.onclick = () => {
-    // record the response
-    student_responses.mc[currentIndex] = choiceText;
+    const now = new Date().toISOString();
+    const selected = choiceText;
+    const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
+    const points = correct ? 4 : 0;
 
-    // reset all buttons in this question block
+    // record response for this question index
+    window.student_responses.mc[currentIndex] = {
+      question: qObj.question,
+      response: selected,
+      start_time: now,
+      end_time: now,
+      correct: !!correct,
+      unit: qObj.unit || 'Uncategorized'
+    };
+
+    // hide other buttons and style the chosen one
     const allBtns = btn.parentElement.querySelectorAll('button');
     allBtns.forEach(b => {
-      b.style.display = 'none';          // hide all
-      b.textContent = b.textContent.replace(' ✔️', ''); // remove old check marks
+      if (b !== btn) {
+        b.style.display = 'none';
+      }
+      b.textContent = b.textContent.replace(' ✔️', '');
       b.style.backgroundColor = '';
       b.style.color = '';
       b.style.fontWeight = '';
     });
 
-    // show only the clicked one, styled and with check mark
     btn.style.display = 'block';
-    btn.style.backgroundColor = '#4CAF50';   // green background
-    btn.style.color = '#fff';                // white text
+    btn.style.backgroundColor = '#4CAF50';
+    btn.style.color = '#fff';
     btn.style.fontWeight = 'bold';
     btn.textContent = choiceText + ' ✔️';
+
+    resolve(points);
   };
 
-  container.appendChild(btn);
+  card.appendChild(btn);
 });
 
-        // Record response
-        window.student_responses.mc.push({
-          question: qObj.question,
-          response: selected,
-          start_time: now,
-          end_time: now,
-          correct: !!correct,
-          unit: qObj.unit || 'Uncategorized'
-        });
-
-        // Update progress text
-        if (progressEl) progressEl.textContent = `${remainingCount} question${remainingCount === 1 ? '' : 's'} remaining`;
-
-        resolve(points);
-      };
-      card.appendChild(btn);
-    });
-
-    quizEl.appendChild(card);
-    if (progressEl) progressEl.textContent = `${total - index} question${total - index === 1 ? '' : 's'} remaining`;
-  });
-}
+quizEl.appendChild(card);
 
 // Render a short-answer card and wait for user to save
 function renderShortAnswerCard(qObj, index, remainingAfter) {
