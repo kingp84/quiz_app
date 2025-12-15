@@ -571,54 +571,57 @@ function renderQuestionCard(qObj, index, total) {
     header.appendChild(remainingBadge);
     card.appendChild(header);
 
-// Choices as buttons
-(qObj.choices || []).forEach(choiceText => {
-  const btn = document.createElement('button');
-  btn.textContent = choiceText;
-  btn.style.display = 'block';
-  btn.style.margin = '8px 0';
+function renderMultipleChoiceCard(qObj, index) {
+  return new Promise(resolve => {
+    const quizEl = document.getElementById('quiz');
+    const card = document.createElement('div');
 
-  btn.onclick = () => {
-    const now = new Date().toISOString();
-    const selected = choiceText;
-    const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
-    const points = correct ? 4 : 0;
+    // Choices as buttons
+    (qObj.choices || []).forEach(choiceText => {
+      const btn = document.createElement('button');
+      btn.textContent = choiceText;
+      btn.style.display = 'block';
+      btn.style.margin = '8px 0';
 
-    // record response for this question index
-    window.student_responses.mc[currentIndex] = {
-      question: qObj.question,
-      response: selected,
-      start_time: now,
-      end_time: now,
-      correct: !!correct,
-      unit: qObj.unit || 'Uncategorized'
-    };
+      btn.onclick = () => {
+        const now = new Date().toISOString();
+        const selected = choiceText;
+        const correct = String(selected).toUpperCase() === String(qObj.answer || '').toUpperCase();
+        const points = correct ? 4 : 0;
 
-    // hide other buttons and style the chosen one
-    const allBtns = btn.parentElement.querySelectorAll('button');
-    allBtns.forEach(b => {
-      if (b !== btn) {
-        b.style.display = 'none';
-      }
-      b.textContent = b.textContent.replace(' ✔️', '');
-      b.style.backgroundColor = '';
-      b.style.color = '';
-      b.style.fontWeight = '';
+        window.student_responses.mc[index] = {
+          question: qObj.question,
+          response: selected,
+          start_time: now,
+          end_time: now,
+          correct: !!correct,
+          unit: qObj.unit || 'Uncategorized'
+        };
+
+        const allBtns = btn.parentElement.querySelectorAll('button');
+        allBtns.forEach(b => {
+          if (b !== btn) b.style.display = 'none';
+          b.textContent = b.textContent.replace(' ✔️', '');
+          b.style.backgroundColor = '';
+          b.style.color = '';
+          b.style.fontWeight = '';
+        });
+
+        btn.style.display = 'block';
+        btn.style.backgroundColor = '#4CAF50';
+        btn.style.color = '#fff';
+        btn.style.fontWeight = 'bold';
+        btn.textContent = choiceText + ' ✔️';
+
+        resolve(points);
+      };
+
+      card.appendChild(btn);
     });
 
-    btn.style.display = 'block';
-    btn.style.backgroundColor = '#4CAF50';
-    btn.style.color = '#fff';
-    btn.style.fontWeight = 'bold';
-    btn.textContent = choiceText + ' ✔️';
-
-    resolve(points);
-  };
-
-  card.appendChild(btn);
-});
-
-quizEl.appendChild(card);
+    quizEl.appendChild(card);
+  });
+}
 
 // Render a short-answer card and wait for user to save
 function renderShortAnswerCard(qObj, index, remainingAfter) {
