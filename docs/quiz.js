@@ -860,8 +860,20 @@ console.log('Loaded quiz.js at', new Date().toISOString());
 
 function startQuiz() {
   currentIndex = 0;
-  prepareSession(); // builds sessionQuestions
-  showQuestion();
+
+  // build session questions
+  const allQs = prepareSession();
+
+  // show the first question
+  if (allQs.length > 0) {
+    renderQuestionCard(allQs[0], 0, allQs.length);
+  } else {
+    console.error('No questions available to render.');
+  }
+
+  // show quiz page
+  document.getElementById('quizPage').style.display = 'block';
+  document.getElementById('introPage').style.display = 'none';
 }
 
 function finishQuiz() {
