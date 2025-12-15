@@ -5,10 +5,15 @@
 // -----------------------------
 const student_responses = { mc: [], short: [], bonus: [], student_info: {} };
 
+// -----------------------------
 // Session state (mutable)
-let mc_questions_session = [];
+// -----------------------------
 let currentIndex = 0;
 let sessionMapping = [];
+
+// -----------------------------
+// Utility functions
+// -----------------------------
 
 // Fisher-Yates shuffle (in-place)
 function shuffleArray(arr) {
@@ -46,6 +51,7 @@ function prepareSession() {
   // combine all
   const allQuestions = [...mcShuffled, ...saCopied, ...bonusCopied];
 
+  // expose globally for rendering
   window.sessionQuestions = allQuestions;
   return allQuestions;
 }
@@ -768,33 +774,45 @@ function showQuestion() {
   const container = document.getElementById('quizContainer');
   container.innerHTML = "";
 
-  const q = window.sessionMapping[currentIndex];
+  const q = window.sessionQuestions[currentIndex];
 
   // progress indicator
   const progress = document.createElement('p');
-  progress.textContent = `Question ${currentIndex + 1} of ${window.sessionMapping.length}`;
+  progress.textContent = `Question ${currentIndex + 1} of ${window.sessionQuestions.length}`;
   container.appendChild(progress);
 
   // question text
   const qText = document.createElement('p');
-  qText.textContent = q.originalQuestion;
+  qText.textContent = q.question;
   container.appendChild(qText);
 
-  // shuffled choices
-  q.shuffledChoices.forEach(choice => {
-    const btn = document.createElement('button');
-    btn.textContent = choice;
-    btn.onclick = () => {
-      student_responses.mc[currentIndex] = choice;
-    };
-    container.appendChild(btn);
-  });
+  if (q.type === 'mc') {
+    q.choices.forEach(choice => {
+      const btn = document.createElement('button');
+      btn.textContent = choice;
+      btn.onclick = () => {
+        student_responses.mc[currentIndex] = choice;
+      };
+      container.appendChild(btn);
+    });
+  } else {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.addEventListener('blur', () => {
+      if (q.type === 'short') {
+        student_responses.short[currentIndex] = input.value;
+      } else if (q.type === 'bonus') {
+        student_responses.bonus[currentIndex] = input.value;
+      }
+    });
+    container.appendChild(input);
+  }
 
   // next button
   const nextBtn = document.createElement('button');
-  nextBtn.textContent = currentIndex < window.sessionMapping.length - 1 ? "Next" : "Review";
+  nextBtn.textContent = currentIndex < window.sessionQuestions.length - 1 ? "Next" : "Review";
   nextBtn.onclick = () => {
-    if (currentIndex < window.sessionMapping.length - 1) {
+    if (currentIndex < window.sessionQuestions.length - 1) {
       currentIndex++;
       showQuestion();
     } else {
@@ -808,17 +826,24 @@ function showReview() {
   const container = document.getElementById('quizContainer');
   container.innerHTML = "<h3>Review Your Answers</h3>";
 
-  window.sessionMapping.forEach((q, idx) => {
+  window.sessionQuestions.forEach((q, idx) => {
+    let answer;
+    if (q.type === 'mc') {
+      answer = student_responses.mc[idx] || "No answer";
+    } else if (q.type === 'short') {
+      answer = student_responses.short[idx] || "No answer";
+    } else if (q.type === 'bonus') {
+      answer = student_responses.bonus[idx] || "No answer";
+    }
     const p = document.createElement('p');
-    p.textContent = `${q.originalQuestion} → ${student_responses.mc[idx] || "No answer"}`;
+    p.textContent = `${q.question} → ${answer}`;
     container.appendChild(p);
   });
 
   const submitBtn = document.createElement('button');
   submitBtn.textContent = "Submit Test";
   submitBtn.onclick = () => {
-    console.log("Final responses:", student_responses);
-    // add CSV export or save logic here
+    finishQuiz();
   };
   container.appendChild(submitBtn);
 }
@@ -828,42 +853,26 @@ function showReview() {
 // -----------------------------
 console.log('Loaded quiz.js at', new Date().toISOString());
 
-function startQuiz(questions = null) {
-  if (Array.isArray(questions) && questions.length) {
-    mc_questions = questions; // mc_questions must be declared with let earlier
-  }
+function startQuiz() {
   currentIndex = 0;
-
-  // build session mapping if not already built
-  if (!window.sessionMapping || !window.sessionMapping.length) {
-    window.sessionMapping = (mc_questions || []).map(q => ({
-      originalQuestion: q.question,
-      shuffledChoices: q.choices ? q.choices.slice() : [],
-      correctIndex: q.choices ? q.choices.findIndex(c => c === q.answer) : -1,
-      originalAnswer: q.answer
-    }));
-  }
-
-  // show the first question
-  if (typeof showQuestion === 'function') {
-    showQuestion();
-  } else {
-    console.error('showQuestion not defined; cannot render quiz.');
-  }
+  prepareSession(); // builds sessionQuestions
+  showQuestion();
 }
 
 function finishQuiz() {
   let score = 0;
-  window.sessionMapping.forEach(q => {
-    const chosen = q.choices[q.correctIndex]; // adjust based on your tracking
-    if (chosen === q.originalAnswer) score++;
+  window.sessionQuestions.forEach((q, idx) => {
+    if (q.type === 'mc') {
+      if (student_responses.mc[idx] === q.answer) score++;
+    }
+    // optional: add scoring for short/bonus
   });
 
   document.getElementById('quizPage').style.display = 'none';
   document.getElementById('resultsPage').style.display = 'block';
 
   document.getElementById('results').textContent =
-    `You scored ${score} out of ${window.sessionMapping.length}`;
+    `You scored ${score} out of ${window.sessionQuestions.filter(q => q.type === 'mc').length}`;
 }
 
 // Ensure global exports
