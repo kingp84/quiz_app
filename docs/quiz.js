@@ -344,11 +344,22 @@ mc_questions_session = window.original_mc_questions.slice();
 window.mc_questions_session = mc_questions_session;
 
 // Start the quiz using a prepared session (or accept shuffled questions)
-function startQuiz(questions = null) {
-  if (Array.isArray(questions) && questions.length) {
-    mc_questions_session = questions;
-    window.mc_questions_session = mc_questions_session;
+function startQuiz() {
+  currentIndex = 0;
+  const allQs = prepareSession();
+
+  if (allQs.length > 0) {
+    renderQuestionCard(allQs[0], 0, allQs.length).then(result => {
+      console.log('First question rendered, result:', result);
+    });
+  } else {
+    console.error('No questions available to render.');
   }
+
+  // show quiz page
+  document.getElementById('quizPage').style.display = 'block';
+  document.getElementById('introPage').style.display = 'none';
+}
 
   // If no sessionMapping exists, prepare one now
   if (!window.sessionMapping || !window.sessionMapping.length) {
@@ -385,8 +396,9 @@ if (typeof window.runQuiz !== 'function') {
 
 // Attach Start button handler (safe: only calls startQuiz if available)
 document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('startQuizBtn');
+  const btn = document.getElementById('startBtn');
   if (!btn) return;
+
   btn.addEventListener('click', () => {
     if (typeof window.startQuiz === 'function') {
       window.startQuiz();
@@ -395,6 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+
 
 // -----------------------------
 // Quiz Functions
@@ -861,6 +875,7 @@ console.log('Loaded quiz.js at', new Date().toISOString());
 function startQuiz() {
   currentIndex = 0;
   const allQs = prepareSession();
+  console.log("Prepared questions:", allQs);
 
   if (allQs.length > 0) {
     renderQuestionCard(allQs[0], 0, allQs.length).then(result => {
