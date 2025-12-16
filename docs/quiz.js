@@ -701,7 +701,7 @@ function renderBonusCard(qObj, index, remainingAfter) {
 window.startQuiz = window.startQuiz || async function (mc_questions, short_questions, bonus_questions) {
   let score = 0;
   const mcList = Array.isArray(mc_questions) ? mc_questions : [];
-  const shortList = Array.isArray(short_questions) ? short_questions : [];
+  const shortList = Array.isArray(short_answer_questions) ? short_questions : [];
   const bonusList = Array.isArray(bonus_questions) ? bonus_questions : [];
 
   // MC questions
@@ -835,6 +835,7 @@ console.log('Loaded quiz.js at', new Date().toISOString());
 function startQuiz() {
   currentIndex = 0;
   const allQs = prepareSession();
+  console.log("Prepared questions:", allQs);
 
   if (allQs.length > 0) {
     renderQuestionCard(allQs[0], 0, allQs.length).then(result => {
