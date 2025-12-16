@@ -280,10 +280,11 @@ const mc_questions = [
         answer: "They enable investigators to interpret raw data and text evidence correctly"
     }
 ];
+
 // -----------------------------
 // Short-answer questions
 // -----------------------------
-const short_questions = [
+const short_answer_questions = [
     {
         question: "(HARD) A victim was abducted and later found displayed with a weapon left behind. Based on behavioral concepts, which offender type is most likely, and why? (Unit 6.1)",
         answer: "Organized offender; displayed body = shock value, weapon left = signature behavior. Must justify with victimology/behavioral reasoning."
