@@ -833,9 +833,11 @@ function showReview() {
 console.log('Loaded quiz.js at', new Date().toISOString());
 
 function startQuiz() {
+  // reset responses
+  window.student_responses = { mc: [], short: [], bonus: [] };
+
   currentIndex = 0;
   const allQs = prepareSession();
-  console.log("Prepared questions:", allQs);
 
   if (allQs.length > 0) {
     renderQuestionCard(allQs[0], 0, allQs.length).then(result => {
@@ -845,7 +847,6 @@ function startQuiz() {
     console.error('No questions available to render.');
   }
 
-  // show quiz page
   document.getElementById('quizPage').style.display = 'block';
   document.getElementById('intro').style.display = 'none';
 }
