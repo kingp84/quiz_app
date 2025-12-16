@@ -878,11 +878,6 @@ function startQuiz() {
   document.getElementById('intro').style.display = 'none';
 }
 
-  // show quiz page
-  document.getElementById('quizPage').style.display = 'block';
-  document.getElementById('introPage').style.display = 'none';
-}
-
 function finishQuiz() {
   let score = 0;
   window.sessionQuestions.forEach((q, idx) => {
