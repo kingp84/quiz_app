@@ -397,7 +397,10 @@ if (typeof window.runQuiz !== 'function') {
 // Attach Start button handler (safe: only calls startQuiz if available)
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('startBtn');
-  if (!btn) return;
+  if (!btn) {
+    console.error('Start button not found');
+    return;
+  }
 
   btn.addEventListener('click', () => {
     if (typeof window.startQuiz === 'function') {
@@ -407,8 +410,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-
-
 
 // -----------------------------
 // Quiz Functions
