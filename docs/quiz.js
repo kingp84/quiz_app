@@ -17,6 +17,7 @@ let sessionMapping = [];
 
 // Fisher-Yates shuffle (in-place)
 function shuffleArray(arr) {
+  if (!Array.isArray(arr)) return [];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -29,31 +30,9 @@ function copyQuestion(q) {
   return {
     question: q.question,
     choices: Array.isArray(q.choices) ? q.choices.slice() : [],
-    answer: q.answer
+    answer: q.answer,
+    unit: q.unit || 'Uncategorized'
   };
-}
-
-// Prepare a session: shuffle MC, include short answer and bonus
-function prepareSession() {
-  // copy and shuffle MC
-  const mcCopied = mc_questions.map(copyQuestion);
-  const mcShuffled = shuffleArray(mcCopied.slice()).map(q => {
-    const shuffledChoices = shuffleArray(q.choices.slice());
-    return { ...q, choices: shuffledChoices, type: 'mc' };
-  });
-
-  // copy short answer
-  const saCopied = short_answer_questions.map(q => ({ ...q, type: 'short' }));
-
-  // copy bonus
-  const bonusCopied = bonus_questions.map(q => ({ ...q, type: 'bonus' }));
-
-  // combine all
-  const allQuestions = [...mcShuffled, ...saCopied, ...bonusCopied];
-
-  // expose globally for rendering
-  window.sessionQuestions = allQuestions;
-  return allQuestions;
 }
 
 // -----------------------------
@@ -432,54 +411,45 @@ function copyQuestion(q) {
   };
 }
 
-// Prepare a session: shuffle questions and shuffle choices per question
-function prepareSession(questions = []) {
-  // Keep originalQuestions as-is; work on copies
-  const copied = (questions || []).map(copyQuestion);
+// Prepare a session: shuffle MC, include short answer and bonus
+function prepareSession() {
+  // guard against undefined arrays
+  const mcSrc = Array.isArray(mc_questions) ? mc_questions : [];
+  const saSrc = Array.isArray(short_answer_questions) ? short_answer_questions : [];
+  const bonusSrc = Array.isArray(bonus_questions) ? bonus_questions : [];
 
-  // Shuffle question order
-  const shuffledQuestions = shuffleArray(copied.slice());
-
-  // Build sessionMapping: for each shuffled question, shuffle choices and compute correctIndex
-  const sessionMapping = shuffledQuestions.map(q => {
-    // If answer is stored as text, find index in original choices
-    const originalAnswerValue = q.answer;
-    // Shuffle choices (operate on q.choices which is already a copy)
+  // copy and shuffle MC
+  const mcCopied = mcSrc.map(copyQuestion);
+  const mcShuffled = shuffleArray(mcCopied.slice()).map(q => {
     const shuffledChoices = shuffleArray(q.choices.slice());
-    // Determine correct index in shuffledChoices
-    const correctIndex = shuffledChoices.findIndex(c => c === originalAnswerValue);
-    // If original answer was an index (number), handle that too
-    if (typeof originalAnswerValue === 'number' && originalAnswerValue >= 0) {
-      const originalValue = q.choices[originalAnswerValue];
-      return {
-        question: q.question,
-        choices: shuffledChoices,
-        correctIndex: shuffledChoices.findIndex(c => c === originalValue),
-        originalAnswer: originalValue
-      };
-    }
-    return {
-      question: q.question,
-      choices: shuffledChoices,
-      correctIndex,
-      originalAnswer: originalAnswerValue
-    };
+    return { ...q, choices: shuffledChoices, type: 'mc' };
   });
 
-  // Return both the shuffled questions (with shuffled choices) and the mapping
-  return {
-    shuffledQuestions: sessionMapping.map(m => ({
-      question: m.question,
-      choices: m.choices,
-      // store correctIndex so UI can check answers
-      correctIndex: m.correctIndex
-    })),
-    sessionMapping
-  };
-}
+  // copy short answer
+  const saCopied = saSrc.map(q => ({
+    question: q.question,
+    answer: q.answer || '',
+    type: 'short',
+    unit: q.unit || 'Uncategorized'
+  }));
 
-// Expose prepareSession globally
-window.prepareSession = window.prepareSession || prepareSession;
+  // copy bonus
+  const bonusCopied = bonusSrc.map(q => ({
+    question: q.question,
+    answer: q.answer || '',
+    type: 'bonus',
+    unit: q.unit || 'Uncategorized'
+  }));
+
+  // combine all
+  const allQuestions = [...mcShuffled, ...saCopied, ...bonusCopied];
+
+  // expose globally for rendering
+  window.sessionQuestions = allQuestions;
+
+  console.log("Prepared session with", allQuestions.length, "questions");
+  return allQuestions;
+}
 
 // Utility helpers
 function escapeHtml(s) {
