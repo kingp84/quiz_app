@@ -343,24 +343,8 @@ window.original_mc_questions = (typeof mc_questions !== 'undefined' ? mc_questio
 mc_questions_session = window.original_mc_questions.slice();
 window.mc_questions_session = mc_questions_session;
 
-// Start the quiz using a prepared session (or accept shuffled questions)
+// Start the quiz using a prepared session
 function startQuiz() {
-  currentIndex = 0;
-  const allQs = prepareSession();
-
-  if (allQs.length > 0) {
-    renderQuestionCard(allQs[0], 0, allQs.length).then(result => {
-      console.log('First question rendered, result:', result);
-    });
-  } else {
-    console.error('No questions available to render.');
-  }
-
-  // show quiz page
-  document.getElementById('quizPage').style.display = 'block';
-  document.getElementById('introPage').style.display = 'none';
-}
-
   // If no sessionMapping exists, prepare one now
   if (!window.sessionMapping || !window.sessionMapping.length) {
     const res = prepareSession(window.original_mc_questions);
@@ -376,6 +360,10 @@ function startQuiz() {
   } else {
     console.error('showQuestion not defined; cannot render quiz.');
   }
+
+  // show quiz page
+  document.getElementById('quizPage').style.display = 'block';
+  document.getElementById('intro').style.display = 'none';
 }
 
 // Export functions safely after definitions
